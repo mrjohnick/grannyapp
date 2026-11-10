@@ -39,7 +39,7 @@ pnpm exec supabase link --project-ref <prosjekt-ref>
 pnpm deploy:db
 ```
 
-`deploy:db` kjører migrasjonene. Testdataene i `seed.sql` blir **ikke** med.
+`deploy:db` kjører migrasjonene mot det koblede prosjektet (`--remote`; CLI v3 bruker ellers lokal database). Testdataene i `seed.sql` blir **ikke** med.
 
 Lag en tilfeldig webhook-hemmelighet og lagre den sammen med bot-tokenet:
 

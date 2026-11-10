@@ -15,7 +15,7 @@
     "db:test": "supabase test db",
     "db:types": "supabase gen types typescript --local > src/lib/database.types.ts",
     "functions:serve": "supabase functions serve --env-file supabase/functions/.env",
-    "deploy:db": "supabase db push",
+    "deploy:db": "supabase db push --remote",
     "deploy:functions": "supabase functions deploy telegram-webhook --no-verify-jwt"
   },
   "dependencies": {
