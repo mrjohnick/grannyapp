@@ -10,7 +10,7 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: "autoUpdate",
-      includeAssets: ["icon.svg"],
+      includeAssets: ["icon.svg", "apple-touch-icon.png"],
       manifest: {
         name: "Where is granny?",
         short_name: "Granny",
@@ -20,7 +20,13 @@ export default defineConfig({
         orientation: "portrait",
         theme_color: "#6A369B",
         background_color: "#FFFBF4",
-        icons: [{ src: "icon.svg", sizes: "any", type: "image/svg+xml", purpose: "any" }],
+        // PNG-ene er eksportert fra Figma-rammen «Eksport/App-ikon 1024» (helflate, uten hjørneradius).
+        // Symbolet ligger innenfor maskable-sonen (sentrale 80 %), så samme fil brukes til begge formål.
+        icons: [
+          { src: "icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
+          { src: "icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
+          { src: "icon-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
+        ],
       },
       workbox: {
         navigateFallback: "/index.html",
