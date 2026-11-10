@@ -3,7 +3,7 @@
 Mobil nettapp (PWA) for jaktleken i Grimstad: 10 grannies, en Rømling og 10 letelag i 2,5 timer.
 
 - **Design:** [Figma – UX, design system og profil](https://www.figma.com/design/KU5kUCDxFU0WzZ0Wy6OBZj). Skjermkodene i koden (G1, L1, F2b, S1 …) viser til skjermene der.
-- **Stack:** React + Vite + TypeScript, Tailwind v4 med tokens fra Figma, MapLibre + Protomaps, Supabase (Postgres/PostGIS, Auth, Storage, Edge Functions), hostes på Cloudflare Pages.
+- **Stack:** React + Vite + TypeScript, Tailwind v4 med tokens fra Figma, MapLibre + Protomaps, Supabase (Postgres/PostGIS, Auth, Storage, Edge Functions), hostes som Cloudflare Worker med statiske filer.
 - **Posisjon:** grannyene deler Telegram live-posisjon med en bot. Det virker med låst skjerm. Appens egen GPS brukes bare mens appen er åpen.
 
 ## Kom i gang lokalt

@@ -65,11 +65,13 @@ pnpm deploy:functions
 
 Svaret fra `getWebhookInfo` skal vise riktig URL og `"pending_update_count":0`.
 
-## 3. Cloudflare Pages (du)
+## 3. Cloudflare Workers (du)
 
-1. Workers & Pages → Create → **Pages** → Connect to Git → `mrjohnick/grannyapp`.
-2. Produksjonsgren: `main`. Build command: `pnpm build`. Output: `dist`.
-3. Miljøvariabler (Production):
+Appen deployes som en Worker med statiske filer (`wrangler.jsonc`). Det er det Cloudflare foreslår som standard; Pages trengs ikke.
+
+1. Workers & Pages → Create application → Import a repository → `mrjohnick/grannyapp`.
+2. Build command: `pnpm build`. Deploy command: `npx wrangler deploy` (standard).
+3. Advanced settings → **Build variables** (ikke runtime-variabler – Vite bygger dem inn i koden):
 
    | Navn | Verdi |
    | --- | --- |
@@ -77,7 +79,7 @@ Svaret fra `getWebhookInfo` skal vise riktig URL og `"pending_update_count":0`.
    | `VITE_SUPABASE_PUBLISHABLE_KEY` | Publishable key |
    | `VITE_TELEGRAM_BOT_USERNAME` | Brukernavnet til boten, uten @ |
 
-4. Deploy. Sett adressen som Site URL i Supabase (steg 2.4).
+4. Deploy. Adressen blir `grannyapp.<konto>.workers.dev`. Sett den som Site URL i Supabase (steg 2.4).
 
 Kartet bruker OpenStreetMap-fliser så lenge `VITE_PMTILES_URL` ikke er satt. Det er greit for en felttest med noen få personer, men ikke for selve spillet.
 
