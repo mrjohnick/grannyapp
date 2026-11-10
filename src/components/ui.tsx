@@ -130,3 +130,86 @@ export function TeamDot({ color, size = 16 }: { color: string; size?: number }) 
 export function Screen({ children, className }: { children: ReactNode; className?: string }) {
   return <div className={`flex h-dvh flex-col overflow-hidden bg-bg-app ${className ?? ""}`}>{children}</div>;
 }
+
+// ---------------------------------------------------------------------------
+// Bunnark og dialog (Figma: «Sheet» i G3/L2, «Dialog» i G5)
+// ---------------------------------------------------------------------------
+export function Sheet({ children, onClose }: { children: ReactNode; onClose?: () => void }) {
+  return (
+    <div className="absolute inset-0 z-20 flex flex-col justify-end">
+      <button type="button" aria-label="Lukk" className="absolute inset-0 bg-bg-overlay" onClick={onClose} />
+      <div className="relative flex max-h-[85%] flex-col gap-3 overflow-y-auto rounded-t-xl bg-bg-surface px-4 pt-3 pb-[max(24px,env(safe-area-inset-bottom))] shadow-lg">
+        <div className="mx-auto h-[5px] w-11 shrink-0 rounded-full bg-border-default" />
+        {children}
+      </div>
+    </div>
+  );
+}
+
+export function Dialog({ children }: { children: ReactNode }) {
+  return (
+    <div className="absolute inset-0 z-30 flex items-center justify-center bg-bg-overlay p-6">
+      <div role="alertdialog" className="flex w-full max-w-sm flex-col gap-4 rounded-xl border-2 border-border-strong bg-bg-surface p-6 shadow-hard">
+        {children}
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// ListRow – Figma: ListRow (Granny / Granny valgt / Lag)
+// ---------------------------------------------------------------------------
+export function SelectRow({
+  title,
+  subtitle,
+  selected,
+  disabled,
+  lead,
+  trailing,
+  onClick,
+}: {
+  title: string;
+  subtitle?: string;
+  selected?: boolean;
+  disabled?: boolean;
+  lead?: ReactNode;
+  trailing?: ReactNode;
+  onClick?: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={onClick}
+      aria-pressed={selected}
+      className={`flex w-full items-center gap-3 rounded-md px-4 py-3 text-left disabled:opacity-60 ${
+        selected ? "border-2 border-border-brand bg-bg-brand-subtle" : "border border-border-default bg-bg-surface"
+      }`}
+    >
+      {lead}
+      <span className="flex min-w-0 flex-1 flex-col">
+        <span className="type-label-l">{title}</span>
+        {subtitle && <span className="type-body-s text-text-secondary">{subtitle}</span>}
+      </span>
+      {selected ? (
+        <span className="grid size-7 place-items-center rounded-full bg-bg-brand text-icon-on-brand">
+          <Icon name="check" size={16} />
+        </span>
+      ) : (
+        trailing
+      )}
+    </button>
+  );
+}
+
+export function Initial({ name, muted }: { name: string; muted?: boolean }) {
+  return (
+    <span
+      className={`grid size-10 shrink-0 place-items-center rounded-full border-2 type-heading-l ${
+        muted ? "border-border-default bg-bg-disabled text-text-disabled" : "border-border-brand bg-bg-brand-subtle text-text-brand"
+      }`}
+    >
+      {name[0]}
+    </span>
+  );
+}

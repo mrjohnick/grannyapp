@@ -8,11 +8,11 @@ import { useZones } from "../lib/useZones";
 import { GameMap, zoneMarkers } from "../map/GameMap";
 import { Badge, Button, Screen, TopBar } from "../components/ui";
 import { Icon } from "../components/Icon";
-import { formatGameTime } from "../lib/gameClock";
 import type { MapMarker } from "../lib/types";
+import { CaughtCard, GrannyCatchDialog } from "../features/catch";
 
 export function GrannyHome() {
-  const { state, gameS } = useGame();
+  const { state, gameS, refresh } = useGame();
   const granny = state.granny!;
   const zones = useZones();
   const { coords, error: gpsError } = useDevicePosition(!granny.caught);
@@ -63,11 +63,7 @@ export function GrannyHome() {
         </div>
 
         {granny.caught ? (
-          <div className="absolute inset-x-4 bottom-6 rounded-xl border-2 border-border-strong bg-bg-surface p-5 shadow-hard">
-            <Badge tone="danger">Fanget {granny.caught_at_s != null ? formatGameTime(granny.caught_at_s) : ""}</Badge>
-            <h2 className="mt-2 type-display-m">Tatt!</h2>
-            <p className="type-body-m text-text-secondary">Du er ute av jakten, men poengene dine står.</p>
-          </div>
+          <div className="absolute inset-x-4 bottom-6"><CaughtCard grannyId={granny.id} /></div>
         ) : (
           <div className="absolute inset-x-4 bottom-5 flex gap-3">
             {/* Kamera og taxi kommer i neste steg */}
@@ -75,6 +71,7 @@ export function GrannyHome() {
             <Button icon="taxi" variant="secondary" disabled>Taxi</Button>
           </div>
         )}
+        {!granny.caught && <GrannyCatchDialog onResolved={refresh} />}
       </main>
     </Screen>
   );

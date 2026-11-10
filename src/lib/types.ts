@@ -114,3 +114,39 @@ export type AdminLive = {
     age_s: number | null;
   }>;
 };
+
+export type TeamCatch = {
+  id: string;
+  granny_id: string;
+  granny_name: string;
+  status: "pending" | "confirmed" | "rejected" | "overridden" | "void";
+  registered_s: number;
+  age_s: number;
+  admin_deciding: boolean;
+};
+
+export type PendingClaim = {
+  id: string;
+  team_id: string;
+  team_name: string;
+  team_color: TeamColor;
+  registered_s: number;
+  age_s: number;
+};
+
+export type AdminCatch = {
+  id: string;
+  status: "pending" | "rejected";
+  granny_id: string;
+  granny_name: string;
+  is_romling: boolean;
+  team_id: string;
+  team_name: string;
+  team_color: TeamColor;
+  registered_s: number;
+  age_s: number;
+  overdue: boolean;
+  competing: number;
+};
+
+export type GrannyRow = { id: string; name: string; is_romling: boolean; caught_at_s: number | null };

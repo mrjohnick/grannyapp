@@ -57,6 +57,8 @@
   --color-icon-brand: var(--color-icon-brand);
   --color-icon-on-brand: var(--color-icon-on-brand);
   --color-icon-danger: var(--color-icon-danger);
+  --color-icon-on-danger: var(--color-icon-on-danger);
+  --color-icon-inverse: var(--color-icon-inverse);
 
   --color-lag-rod: var(--lag-rod);
   --color-lag-oransje: var(--lag-oransje);

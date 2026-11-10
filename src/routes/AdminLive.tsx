@@ -8,6 +8,7 @@ import { GameMap, zoneMarkers } from "../map/GameMap";
 import { Badge, Button, TeamDot } from "../components/ui";
 import { LogoLockup } from "../components/Logo";
 import { formatClock, formatCountdown } from "../lib/gameClock";
+import { AdminCatchQueue } from "../features/catch";
 import type { AdminLive as AdminLiveData, MapMarker, TelegramStats } from "../lib/types";
 
 const STALE_S = 60;
@@ -92,6 +93,8 @@ export function AdminLive() {
           </div>
           {error && <p className="mt-2 type-body-s text-text-danger">{error}</p>}
         </section>
+
+        <AdminCatchQueue />
 
         {stale.length > 0 && (
           <section className="rounded-lg border-2 border-border-strong bg-bg-warning-subtle p-3">

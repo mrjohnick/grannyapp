@@ -9,6 +9,7 @@ import { Badge, Button, Screen, TeamDot, TopBar } from "../components/ui";
 import { Icon } from "../components/Icon";
 import { formatCountdown, formatGameTime } from "../lib/gameClock";
 import type { MapMarker, TeamMap } from "../lib/types";
+import { TeamCatchSheet, TeamCatchStatus } from "../features/catch";
 
 export function TeamHome() {
   const { state, gameS, refresh } = useGame();
@@ -19,6 +20,8 @@ export function TeamHome() {
 
   const [map, setMap] = useState<TeamMap | null>(null);
   const [pingFlash, setPingFlash] = useState(false);
+  const [catchOpen, setCatchOpen] = useState(false);
+  const [catchKey, setCatchKey] = useState(0);
 
   const load = useCallback(async () => {
     const { data, error } = await supabase.rpc("team_map");
@@ -85,9 +88,18 @@ export function TeamHome() {
             <span className="type-label-m">{team.name}</span>
             {team.assigned_granny_name && <Badge tone="warning">Deres: {team.assigned_granny_name}</Badge>}
           </div>
-          {/* Fangst kommer i neste steg */}
-          <Button icon="target" block disabled>Fang granny</Button>
+          <TeamCatchStatus refreshKey={catchKey} />
+          <Button icon="target" block disabled={state.status !== "running"} onClick={() => setCatchOpen(true)}>Fang granny</Button>
         </div>
+
+        {catchOpen && (
+          <TeamCatchSheet
+            state={state}
+            gameS={gameS}
+            onClose={() => setCatchOpen(false)}
+            onRegistered={() => { setCatchOpen(false); setCatchKey((k) => k + 1); load(); }}
+          />
+        )}
       </main>
     </Screen>
   );
