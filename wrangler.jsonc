@@ -1,0 +1,11 @@
+// Cloudflare Workers med statiske filer. Appen er en ren SPA bygget av Vite,
+// så Workeren har ingen egen kode: den serverer dist/ og sender ukjente
+// stier til index.html.
+{
+  "name": "grannyapp",
+  "compatibility_date": "2026-10-01",
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "single-page-application"
+  }
+}

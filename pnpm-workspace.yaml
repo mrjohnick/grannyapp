@@ -1,0 +1,4 @@
+# pnpm 11 krever et eksplisitt valg for pakker med installasjonsskript.
+# Vite 8 bruker Rolldown og trenger ikke esbuild sitt skript.
+allowBuilds:
+  esbuild: false
