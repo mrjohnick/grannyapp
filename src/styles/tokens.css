@@ -1,0 +1,150 @@
+/*
+ * Design-tokens fra Figma-fila «Where is granny? – App»
+ * https://www.figma.com/design/KU5kUCDxFU0WzZ0Wy6OBZj
+ * Navnene er de samme som code syntax på Figma-variablene.
+ * Endres en variabel i Figma, endres den her.
+ */
+
+:root {
+  /* Primitives */
+  --plomme-50: #f7f2fb; --plomme-100: #ebdff5; --plomme-200: #d7beeb; --plomme-300: #bd96dc;
+  --plomme-400: #a06ccb; --plomme-500: #8349b8; --plomme-600: #6a369b; --plomme-700: #53297a;
+  --plomme-800: #3b1d58; --plomme-900: #26123a; --plomme-950: #170a26;
+  --krem-50: #fffbf4; --krem-100: #fbf3e6; --krem-200: #f3e7d3; --krem-300: #e5d5bb; --krem-400: #c9b799;
+  --krem-500: #a39276; --krem-600: #7a6c56; --krem-700: #554a3b; --krem-800: #352e25; --krem-900: #1f1a15;
+  --rosa-100: #ffe1ea; --rosa-300: #ff9db8; --rosa-500: #f2557f; --rosa-700: #b82f58;
+  --sennep-100: #fff1c7; --sennep-300: #ffd866; --sennep-500: #f2b705; --sennep-700: #8f6700;
+  --mint-100: #d9f5ea; --mint-300: #8fe0c2; --mint-500: #2fb98a; --mint-700: #1b7a5b; --mint-900: #0f3d2e;
+  --tomat-100: #ffe0db; --tomat-300: #ff9a8c; --tomat-500: #e5432f; --tomat-700: #a82a1b;
+  --himmel-100: #dcebff; --himmel-200: #b9d8fa; --himmel-500: #2f7de5; --himmel-700: #1d529c; --himmel-900: #12283f;
+  --hvit: #ffffff; --svart: #000000; --scrim-60: #170a2699;
+
+  /* Lagfarger (vester og buffer) */
+  --lag-rod: #e5432f; --lag-oransje: #f28c28; --lag-gul: #f2c200; --lag-lime: #8bc34a; --lag-gronn: #2e9e5b;
+  --lag-turkis: #17b5b0; --lag-bla: #2f7de5; --lag-marine: #1f3a93; --lag-rosa: #f06aa8; --lag-brun: #8d6748;
+
+  /* Semantiske farger – Light */
+  --color-bg-app: var(--krem-50);
+  --color-bg-surface: var(--hvit);
+  --color-bg-surface-raised: var(--hvit);
+  --color-bg-sunken: var(--krem-100);
+  --color-bg-inverse: var(--plomme-900);
+  --color-bg-brand: var(--plomme-600);
+  --color-bg-brand-pressed: var(--plomme-700);
+  --color-bg-brand-subtle: var(--plomme-100);
+  --color-bg-accent: var(--rosa-500);
+  --color-bg-accent-subtle: var(--rosa-100);
+  --color-bg-success: var(--mint-500);
+  --color-bg-success-subtle: var(--mint-100);
+  --color-bg-warning: var(--sennep-500);
+  --color-bg-warning-subtle: var(--sennep-100);
+  --color-bg-danger: var(--tomat-500);
+  --color-bg-danger-pressed: var(--tomat-700);
+  --color-bg-danger-subtle: var(--tomat-100);
+  --color-bg-info: var(--himmel-500);
+  --color-bg-info-subtle: var(--himmel-100);
+  --color-bg-disabled: var(--krem-200);
+  --color-bg-overlay: var(--scrim-60);
+
+  --color-text-primary: var(--plomme-900);
+  --color-text-secondary: var(--krem-700);
+  --color-text-tertiary: var(--krem-600);
+  --color-text-disabled: var(--krem-400);
+  --color-text-on-brand: var(--hvit);
+  --color-text-on-danger: var(--hvit);
+  --color-text-on-warning: var(--plomme-900);
+  --color-text-inverse: var(--krem-50);
+  --color-text-brand: var(--plomme-600);
+  --color-text-danger: var(--tomat-700);
+  --color-text-success: var(--mint-700);
+  --color-text-warning: var(--sennep-700);
+  --color-text-info: var(--himmel-700);
+
+  --color-border-default: var(--krem-300);
+  --color-border-strong: var(--plomme-900);
+  --color-border-brand: var(--plomme-600);
+  --color-border-danger: var(--tomat-500);
+  --color-border-focus: var(--sennep-500);
+
+  --color-icon-primary: var(--plomme-900);
+  --color-icon-secondary: var(--krem-600);
+  --color-icon-brand: var(--plomme-600);
+  --color-icon-on-brand: var(--hvit);
+  --color-icon-on-danger: var(--hvit);
+  --color-icon-danger: var(--tomat-500);
+  --color-icon-inverse: var(--krem-50);
+
+  --color-map-land: var(--krem-100);
+  --color-map-water: var(--himmel-200);
+  --color-map-road: var(--hvit);
+  --color-map-block: var(--krem-200);
+  --color-map-park: var(--mint-100);
+
+  --color-marker-granny: var(--plomme-600);
+  --color-marker-romling: var(--plomme-900);
+  --color-marker-anonym: var(--krem-500);
+  --color-marker-nabovakt: var(--himmel-500);
+  --color-marker-kaffekroken: var(--sennep-500);
+  --color-marker-bingo: var(--rosa-500);
+  --color-marker-nattevakt: var(--plomme-800);
+  --color-marker-meg: var(--himmel-500);
+
+  color-scheme: light;
+}
+
+/* Dark: kamera, blindet, store øyeblikk – eller hele appen med data-theme="dark" */
+[data-theme="dark"], .theme-dark {
+  --color-bg-app: var(--plomme-950);
+  --color-bg-surface: var(--plomme-900);
+  --color-bg-surface-raised: var(--plomme-800);
+  --color-bg-sunken: var(--plomme-900);
+  --color-bg-inverse: var(--krem-50);
+  --color-bg-brand: var(--plomme-400);
+  --color-bg-brand-pressed: var(--plomme-300);
+  --color-bg-brand-subtle: var(--plomme-800);
+  --color-bg-accent-subtle: var(--rosa-700);
+  --color-bg-success-subtle: var(--mint-900);
+  --color-bg-warning-subtle: var(--sennep-700);
+  --color-bg-danger-pressed: var(--tomat-300);
+  --color-bg-danger-subtle: var(--tomat-700);
+  --color-bg-info-subtle: var(--himmel-700);
+  --color-bg-disabled: var(--plomme-800);
+
+  --color-text-primary: var(--krem-50);
+  --color-text-secondary: var(--plomme-200);
+  --color-text-tertiary: var(--plomme-300);
+  --color-text-disabled: var(--plomme-500);
+  --color-text-on-brand: var(--plomme-950);
+  --color-text-inverse: var(--plomme-900);
+  --color-text-brand: var(--plomme-300);
+  --color-text-danger: var(--tomat-300);
+  --color-text-success: var(--mint-300);
+  --color-text-warning: var(--sennep-300);
+  --color-text-info: var(--himmel-100);
+
+  --color-border-default: var(--plomme-700);
+  --color-border-strong: var(--krem-50);
+  --color-border-brand: var(--plomme-400);
+  --color-border-focus: var(--sennep-300);
+
+  --color-icon-primary: var(--krem-50);
+  --color-icon-secondary: var(--plomme-300);
+  --color-icon-brand: var(--plomme-300);
+  --color-icon-on-brand: var(--plomme-950);
+  --color-icon-danger: var(--tomat-300);
+  --color-icon-inverse: var(--plomme-900);
+
+  --color-map-land: var(--plomme-900);
+  --color-map-water: var(--himmel-900);
+  --color-map-road: var(--plomme-700);
+  --color-map-block: var(--plomme-800);
+  --color-map-park: var(--mint-900);
+
+  --color-marker-granny: var(--plomme-400);
+  --color-marker-romling: var(--krem-50);
+  --color-marker-anonym: var(--krem-400);
+  --color-marker-nattevakt: var(--sennep-300);
+  --color-marker-meg: var(--himmel-200);
+
+  color-scheme: dark;
+}

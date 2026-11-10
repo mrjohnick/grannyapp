@@ -1,0 +1,121 @@
+@import "./fonts.css";
+@import "tailwindcss";
+@import "./tokens.css";
+
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *, .theme-dark, .theme-dark *));
+
+/* Tailwind-utilities med samme navn som Figma: bg-bg-app, text-text-primary, border-border-strong … */
+@theme inline {
+  --color-*: initial;
+  --color-transparent: transparent;
+  --color-current: currentColor;
+
+  --color-bg-app: var(--color-bg-app);
+  --color-bg-surface: var(--color-bg-surface);
+  --color-bg-surface-raised: var(--color-bg-surface-raised);
+  --color-bg-sunken: var(--color-bg-sunken);
+  --color-bg-inverse: var(--color-bg-inverse);
+  --color-bg-brand: var(--color-bg-brand);
+  --color-bg-brand-pressed: var(--color-bg-brand-pressed);
+  --color-bg-brand-subtle: var(--color-bg-brand-subtle);
+  --color-bg-accent: var(--color-bg-accent);
+  --color-bg-accent-subtle: var(--color-bg-accent-subtle);
+  --color-bg-success: var(--color-bg-success);
+  --color-bg-success-subtle: var(--color-bg-success-subtle);
+  --color-bg-warning: var(--color-bg-warning);
+  --color-bg-warning-subtle: var(--color-bg-warning-subtle);
+  --color-bg-danger: var(--color-bg-danger);
+  --color-bg-danger-pressed: var(--color-bg-danger-pressed);
+  --color-bg-danger-subtle: var(--color-bg-danger-subtle);
+  --color-bg-info: var(--color-bg-info);
+  --color-bg-info-subtle: var(--color-bg-info-subtle);
+  --color-bg-disabled: var(--color-bg-disabled);
+  --color-bg-overlay: var(--color-bg-overlay);
+
+  --color-text-primary: var(--color-text-primary);
+  --color-text-secondary: var(--color-text-secondary);
+  --color-text-tertiary: var(--color-text-tertiary);
+  --color-text-disabled: var(--color-text-disabled);
+  --color-text-on-brand: var(--color-text-on-brand);
+  --color-text-on-danger: var(--color-text-on-danger);
+  --color-text-on-warning: var(--color-text-on-warning);
+  --color-text-inverse: var(--color-text-inverse);
+  --color-text-brand: var(--color-text-brand);
+  --color-text-danger: var(--color-text-danger);
+  --color-text-success: var(--color-text-success);
+  --color-text-warning: var(--color-text-warning);
+  --color-text-info: var(--color-text-info);
+
+  --color-border-default: var(--color-border-default);
+  --color-border-strong: var(--color-border-strong);
+  --color-border-brand: var(--color-border-brand);
+  --color-border-danger: var(--color-border-danger);
+  --color-border-focus: var(--color-border-focus);
+
+  --color-icon-primary: var(--color-icon-primary);
+  --color-icon-secondary: var(--color-icon-secondary);
+  --color-icon-brand: var(--color-icon-brand);
+  --color-icon-on-brand: var(--color-icon-on-brand);
+  --color-icon-danger: var(--color-icon-danger);
+
+  --color-lag-rod: var(--lag-rod);
+  --color-lag-oransje: var(--lag-oransje);
+  --color-lag-gul: var(--lag-gul);
+  --color-lag-lime: var(--lag-lime);
+  --color-lag-gronn: var(--lag-gronn);
+  --color-lag-turkis: var(--lag-turkis);
+  --color-lag-bla: var(--lag-bla);
+  --color-lag-marine: var(--lag-marine);
+  --color-lag-rosa: var(--lag-rosa);
+  --color-lag-brun: var(--lag-brun);
+
+  --font-display: "Recoleta", "Fraunces", Georgia, serif;
+  --font-sans: "Sofia Pro", "DM Sans", system-ui, sans-serif;
+  --font-mono: "Integral CF", "DM Mono", ui-monospace, monospace;
+
+  --radius-xs: 4px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+
+  --shadow-sm: 0 1px 2px #26123a14;
+  --shadow-md: 0 4px 12px #26123a1a, 0 1px 2px #26123a0f;
+  --shadow-lg: 0 12px 32px #26123a2e, 0 2px 6px #26123a14;
+  --shadow-marker: 0 3px 6px #26123a47;
+  --shadow-hard: 0 4px 0 var(--color-border-strong);
+}
+
+/* Tekststiler fra Figma */
+@utility type-display-xl { font: 900 44px/46px var(--font-display); letter-spacing: -1px; }
+@utility type-display-l  { font: 900 34px/38px var(--font-display); letter-spacing: -0.5px; }
+@utility type-display-m  { font: 900 26px/30px var(--font-display); letter-spacing: -0.3px; }
+@utility type-heading-l  { font: 600 22px/28px var(--font-display); letter-spacing: -0.2px; }
+@utility type-heading-m  { font: 700 18px/24px var(--font-sans); }
+@utility type-heading-s  { font: 700 16px/22px var(--font-sans); }
+@utility type-body-l     { font: 400 17px/26px var(--font-sans); }
+@utility type-body-m     { font: 400 15px/22px var(--font-sans); }
+@utility type-body-s     { font: 400 13px/18px var(--font-sans); }
+@utility type-label-l    { font: 600 17px/22px var(--font-sans); }
+@utility type-label-m    { font: 600 15px/20px var(--font-sans); }
+@utility type-label-s    { font: 600 13px/16px var(--font-sans); }
+@utility type-label-caps { font: 700 11px/14px var(--font-sans); letter-spacing: 0.8px; text-transform: uppercase; }
+@utility type-quote-m    { font: italic 400 20px/28px var(--font-display); }
+@utility type-timer-xl   { font: 500 48px/52px var(--font-mono); letter-spacing: -1px; font-variant-numeric: tabular-nums; }
+@utility type-timer-l    { font: 500 28px/32px var(--font-mono); letter-spacing: -0.5px; font-variant-numeric: tabular-nums; }
+@utility type-timer-m    { font: 500 17px/22px var(--font-mono); font-variant-numeric: tabular-nums; }
+@utility type-timer-s    { font: 500 13px/16px var(--font-mono); font-variant-numeric: tabular-nums; }
+
+@layer base {
+  html, body, #root { height: 100%; }
+  body {
+    margin: 0;
+    background: var(--color-bg-app);
+    color: var(--color-text-primary);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -webkit-tap-highlight-color: transparent;
+    overscroll-behavior: none;
+  }
+  :focus-visible { outline: 3px solid var(--color-border-focus); outline-offset: 2px; }
+}

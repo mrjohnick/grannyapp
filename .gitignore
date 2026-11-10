@@ -1,0 +1,15 @@
+node_modules
+dist
+dev-dist
+*.local
+.env
+.DS_Store
+
+# Supabase
+supabase/.branches
+supabase/.temp
+supabase/functions/.env
+
+# Kommersielle fonter og kartutsnitt – lisens/størrelse, ikke i repoet
+public/fonts/
+public/maps/*.pmtiles
