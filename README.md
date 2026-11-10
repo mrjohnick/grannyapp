@@ -74,6 +74,6 @@ Ikke laget ennå: fangst og bekreftelse, oppgaver (Sladrehanken, Fotoalbumet, Bi
 - Slå på anonym innlogging og **øk grensen for anonyme innlogginger per IP** (standard 30/time). 111 spillere på samme Wi-Fi eller mobilnett vil ellers bli stoppet.
 - Lag boten hos @BotFather, sett `supabase secrets set TELEGRAM_BOT_TOKEN=… TELEGRAM_WEBHOOK_SECRET=…`, deploy funksjonen og kjør `scripts/telegram-set-webhook.sh`.
 - Lag et Grimstad-utsnitt: `pmtiles extract https://build.protomaps.com/<dato>.pmtiles grimstad.pmtiles --bbox=8.55,58.32,8.63,58.36`, legg det i R2 og sett `VITE_PMTILES_URL`. OSM-flisene brukes bare i utvikling.
-- Profilfontene (Recoleta, Sofia Pro, Integral CF) er kommersielle og ligger ikke i repoet. Se `docs/brand-fonts.example.css` og `VITE_BRAND_FONTS_URL`.
+- Fonter: Young Serif og Sofia Sans har åpen lisens og er med i bygget. Integral CF (klokke, etiketter, logo-undertittel) er kommersiell og ligger ikke i repoet. Se `docs/brand-fonts.example.css` og `VITE_BRAND_FONTS_URL`. Sjekk at klokka ikke hopper med Integral CF, siden fonten kanskje ikke har tall med fast bredde.
 - Supabase Pro i spillmåneden (gratisnivået har 200 samtidige tilkoblinger).
 - Felttest i Grimstad før spilldagen: hvor ofte Telegram sender posisjon, GPS-avvik i sentrum, batteri over 2,5 timer.

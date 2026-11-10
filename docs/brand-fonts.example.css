@@ -1,12 +1,15 @@
 /*
- * Mal for profilfontene. Kopier til der fontfilene ligger (f.eks. en privat
- * R2-bøtte eller public/fonts/ lokalt, som er gitignored), rett opp URL-ene,
- * og sett VITE_BRAND_FONTS_URL til adressen til denne CSS-fila.
- * Sjekk at webfont-lisensen dekker bruken.
+ * Mal for den lisensierte profilfonten Integral CF. Kopier til der fontfila
+ * ligger (f.eks. en privat R2-bøtte, eller public/fonts/ lokalt, som er
+ * gitignored), rett opp URL-en, og sett VITE_BRAND_FONTS_URL til adressen
+ * til denne CSS-fila. Sjekk at webfont-lisensen dekker bruken.
+ *
+ * Vektområdet 100–900 er med vilje: appen ber om vekt 800 for at reserven
+ * (Sofia Sans) skal bli tykk nok, og Integral CF Regular skal brukes uansett.
  */
-@font-face { font-family: "Recoleta";    src: url("Recoleta-Black.woff2") format("woff2");    font-weight: 900; font-display: swap; }
-@font-face { font-family: "Recoleta";    src: url("Recoleta-SemiBold.woff2") format("woff2"); font-weight: 600; font-display: swap; }
-@font-face { font-family: "Sofia Pro";   src: url("SofiaPro-Regular.woff2") format("woff2");  font-weight: 400; font-display: swap; }
-@font-face { font-family: "Sofia Pro";   src: url("SofiaPro-SemiBold.woff2") format("woff2"); font-weight: 600; font-display: swap; }
-@font-face { font-family: "Sofia Pro";   src: url("SofiaPro-Bold.woff2") format("woff2");     font-weight: 700; font-display: swap; }
-@font-face { font-family: "Integral CF"; src: url("IntegralCF-Medium.woff2") format("woff2"); font-weight: 500; font-display: swap; }
+@font-face {
+  font-family: "Integral CF";
+  src: url("IntegralCF-Regular.woff2") format("woff2");
+  font-weight: 100 900;
+  font-display: swap;
+}

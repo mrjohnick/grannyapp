@@ -17,12 +17,12 @@ export function LogoSymbol({ size = 64 }: { size?: number }) {
 
 export function LogoLockup({ scale = 1 }: { scale?: number }) {
   return (
-    <div className="flex items-center gap-3" style={{ transform: `scale(${scale})`, transformOrigin: "left center" }}>
+    <div className="flex items-center gap-[14px]" style={{ transform: `scale(${scale})`, transformOrigin: "left center" }}>
       <LogoSymbol size={56} />
-      <div className="leading-none">
-        <div style={{ font: "italic 400 22px/26px var(--font-display)" }}>Where is</div>
-        <div style={{ font: "900 52px/54px var(--font-display)", letterSpacing: "-1.5px" }}>
-          granny<span className="text-[var(--rosa-500)]">?</span>
+      <div className="flex flex-col text-text-primary">
+        <div className="type-logo-undertittel">Where is</div>
+        <div className="type-logo-ordmerke -mt-1">
+          granny<span className="text-bg-accent">?</span>
         </div>
       </div>
     </div>

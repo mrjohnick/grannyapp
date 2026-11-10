@@ -69,9 +69,10 @@
   --color-lag-rosa: var(--lag-rosa);
   --color-lag-brun: var(--lag-brun);
 
-  --font-display: "Recoleta", "Fraunces", Georgia, serif;
-  --font-sans: "Sofia Pro", "DM Sans", system-ui, sans-serif;
-  --font-mono: "Integral CF", "DM Mono", ui-monospace, monospace;
+  --font-display: "Young Serif", Georgia, serif;
+  --font-sans: "Sofia Sans", system-ui, sans-serif;
+  /* Integral CF er lisensiert og lastes separat; Sofia Sans ExtraBold er reserve. */
+  --font-brand: "Integral CF", "Sofia Sans", system-ui, sans-serif;
 
   --radius-xs: 4px;
   --radius-sm: 8px;
@@ -86,11 +87,11 @@
   --shadow-hard: 0 4px 0 var(--color-border-strong);
 }
 
-/* Tekststiler fra Figma */
-@utility type-display-xl { font: 900 44px/46px var(--font-display); letter-spacing: -1px; }
-@utility type-display-l  { font: 900 34px/38px var(--font-display); letter-spacing: -0.5px; }
-@utility type-display-m  { font: 900 26px/30px var(--font-display); letter-spacing: -0.3px; }
-@utility type-heading-l  { font: 600 22px/28px var(--font-display); letter-spacing: -0.2px; }
+/* Tekststiler fra Figma (samme navn, størrelse, linjehøyde og sperring) */
+@utility type-display-xl { font: 400 44px/46px var(--font-display); letter-spacing: -1px; }
+@utility type-display-l  { font: 400 34px/38px var(--font-display); letter-spacing: -0.5px; }
+@utility type-display-m  { font: 400 26px/30px var(--font-display); letter-spacing: -0.3px; }
+@utility type-heading-l  { font: 400 22px/28px var(--font-display); letter-spacing: -0.2px; }
 @utility type-heading-m  { font: 700 18px/24px var(--font-sans); }
 @utility type-heading-s  { font: 700 16px/22px var(--font-sans); }
 @utility type-body-l     { font: 400 17px/26px var(--font-sans); }
@@ -99,12 +100,15 @@
 @utility type-label-l    { font: 600 17px/22px var(--font-sans); }
 @utility type-label-m    { font: 600 15px/20px var(--font-sans); }
 @utility type-label-s    { font: 600 13px/16px var(--font-sans); }
-@utility type-label-caps { font: 700 11px/14px var(--font-sans); letter-spacing: 0.8px; text-transform: uppercase; }
-@utility type-quote-m    { font: italic 400 20px/28px var(--font-display); }
-@utility type-timer-xl   { font: 500 48px/52px var(--font-mono); letter-spacing: -1px; font-variant-numeric: tabular-nums; }
-@utility type-timer-l    { font: 500 28px/32px var(--font-mono); letter-spacing: -0.5px; font-variant-numeric: tabular-nums; }
-@utility type-timer-m    { font: 500 17px/22px var(--font-mono); font-variant-numeric: tabular-nums; }
-@utility type-timer-s    { font: 500 13px/16px var(--font-mono); font-variant-numeric: tabular-nums; }
+@utility type-label-caps { font: 800 11px/14px var(--font-brand); letter-spacing: 0.5px; text-transform: uppercase; }
+@utility type-quote-m    { font: 400 20px/28px var(--font-display); }
+/* Integral CF har kanskje ikke tall med fast bredde. tabular-nums brukes der fonten har det. */
+@utility type-timer-xl   { font: 800 48px/52px var(--font-brand); font-variant-numeric: tabular-nums; }
+@utility type-timer-l    { font: 800 28px/32px var(--font-brand); font-variant-numeric: tabular-nums; }
+@utility type-timer-m    { font: 800 17px/22px var(--font-brand); font-variant-numeric: tabular-nums; }
+@utility type-timer-s    { font: 500 13px/16px var(--font-sans); font-variant-numeric: tabular-nums; }
+@utility type-logo-undertittel { font: 800 16px/20px var(--font-brand); letter-spacing: 1px; text-transform: uppercase; }
+@utility type-logo-ordmerke    { font: 400 52px/54px var(--font-display); letter-spacing: -1.5px; }
 
 @layer base {
   html, body, #root { height: 100%; }
