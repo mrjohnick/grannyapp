@@ -70,6 +70,9 @@ Ikke laget ennå: fangst og bekreftelse, oppgaver (Sladrehanken, Fotoalbumet, Bi
 
 ## Produksjon – sjekkliste
 
+Steg for steg for første deploy og felttesten: [docs/DEPLOY.md](docs/DEPLOY.md).
+
+
 - Opprett Supabase-prosjekt i EU (Stockholm), `supabase link`, `supabase db push`.
 - Slå på anonym innlogging og **øk grensen for anonyme innlogginger per IP** (standard 30/time). 111 spillere på samme Wi-Fi eller mobilnett vil ellers bli stoppet.
 - Lag boten hos @BotFather, sett `supabase secrets set TELEGRAM_BOT_TOKEN=… TELEGRAM_WEBHOOK_SECRET=…`, deploy funksjonen og kjør `scripts/telegram-set-webhook.sh`.

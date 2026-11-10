@@ -8,7 +8,7 @@ import { GameMap, zoneMarkers } from "../map/GameMap";
 import { Badge, Button, TeamDot } from "../components/ui";
 import { LogoLockup } from "../components/Logo";
 import { formatClock, formatCountdown } from "../lib/gameClock";
-import type { AdminLive as AdminLiveData, MapMarker } from "../lib/types";
+import type { AdminLive as AdminLiveData, MapMarker, TelegramStats } from "../lib/types";
 
 const STALE_S = 60;
 
@@ -29,6 +29,14 @@ export function AdminLive() {
     if (!error) setLive(data as AdminLiveData);
   }, []);
   useInterval(load, 5000);
+
+  const [stats, setStats] = useState<TelegramStats | null>(null);
+  const [windowMin, setWindowMin] = useState(30);
+  const loadStats = useCallback(async () => {
+    const { data, error } = await supabase.rpc("admin_telegram_stats", { p_window_min: windowMin });
+    if (!error) setStats(data as TelegramStats);
+  }, [windowMin]);
+  useInterval(loadStats, 15_000);
 
   async function setStatus(action: "start" | "pause" | "resume" | "end") {
     if (action === "end" && !confirm("Avslutte spillet nå? Det kan ikke angres.")) return;
@@ -63,7 +71,7 @@ export function AdminLive() {
 
   return (
     <div className="flex h-dvh flex-col bg-bg-app lg:flex-row">
-      <aside className="flex flex-col gap-4 overflow-y-auto border-border-strong bg-bg-surface p-5 lg:w-[340px] lg:border-r-2">
+      <aside className="flex flex-col gap-4 overflow-y-auto border-border-strong bg-bg-surface p-5 lg:w-[380px] lg:border-r-2">
         <LogoLockup scale={0.6} />
         <section className="rounded-lg border-2 border-border-strong bg-bg-brand-subtle p-4 shadow-hard">
           <div className="flex items-center justify-between">
@@ -93,6 +101,8 @@ export function AdminLive() {
             </p>
           </section>
         )}
+
+        <TelegramStatsPanel stats={stats} windowMin={windowMin} onWindow={setWindowMin} />
 
         <section>
           <h2 className="mb-2 type-heading-m">Grannies</h2>
@@ -125,5 +135,67 @@ export function AdminLive() {
         <GameMap zones={zones} markers={markers} />
       </main>
     </div>
+  );
+}
+
+// Felttest: hvor ofte og hvor presist kommer Telegram-posisjonene?
+function secs(v: number | null) {
+  if (v == null) return "–";
+  return v < 90 ? `${Math.round(v)} s` : `${Math.round(v / 60)} min`;
+}
+
+function TelegramStatsPanel({
+  stats,
+  windowMin,
+  onWindow,
+}: {
+  stats: TelegramStats | null;
+  windowMin: number;
+  onWindow: (m: number) => void;
+}) {
+  return (
+    <section className="rounded-lg border border-border-default bg-bg-surface p-3">
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <h2 className="type-heading-m">Telegram-måling</h2>
+        <select
+          value={windowMin}
+          onChange={(e) => onWindow(Number(e.target.value))}
+          className="rounded-sm border border-border-default bg-bg-surface px-2 py-1 type-label-s"
+        >
+          {[10, 30, 60, 150].map((m) => (
+            <option key={m} value={m}>Siste {m} min</option>
+          ))}
+        </select>
+      </div>
+      <table className="w-full type-body-s">
+        <thead className="text-left text-text-tertiary">
+          <tr>
+            <th className="font-semibold">Granny</th>
+            <th className="whitespace-nowrap pl-2 text-right font-semibold" title="Antall oppdateringer">Ant.</th>
+            <th className="whitespace-nowrap pl-2 text-right font-semibold" title="Typisk tid mellom oppdateringer">Median</th>
+            <th className="whitespace-nowrap pl-2 text-right font-semibold" title="9 av 10 hull er kortere enn dette">P90</th>
+            <th className="whitespace-nowrap pl-2 text-right font-semibold" title="Største hull">Maks</th>
+            <th className="whitespace-nowrap pl-2 text-right font-semibold" title="Typisk nøyaktighet fra Telegram">±m</th>
+          </tr>
+        </thead>
+        <tbody className="type-timer-s">
+          {(stats?.grannies ?? []).map((g) => (
+            <tr key={g.id} className="border-t border-border-default">
+              <td className="py-1 font-sans">
+                {g.name}
+                {!g.linked && <span className="text-text-warning"> · ikke koblet</span>}
+                {g.linked && g.updates > 0 && !g.live && <span className="text-text-danger"> · ikke live</span>}
+              </td>
+              <td className="whitespace-nowrap pl-2 text-right">{g.updates}</td>
+              <td className="whitespace-nowrap pl-2 text-right">{secs(g.median_gap_s)}</td>
+              <td className="whitespace-nowrap pl-2 text-right">{secs(g.p90_gap_s)}</td>
+              <td className={`whitespace-nowrap pl-2 text-right ${g.max_gap_s != null && g.max_gap_s > 180 ? "text-text-danger" : ""}`}>{secs(g.max_gap_s)}</td>
+              <td className="whitespace-nowrap pl-2 text-right">{g.median_accuracy_m != null ? Math.round(g.median_accuracy_m) : "–"}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <p className="mt-2 type-body-s text-text-tertiary">Hull over 3 min er røde. Tidene er fra Telegram, ikke fra serveren.</p>
+    </section>
   );
 }

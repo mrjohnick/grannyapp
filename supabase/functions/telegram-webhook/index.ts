@@ -14,11 +14,24 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 const BOT_TOKEN = Deno.env.get("TELEGRAM_BOT_TOKEN") ?? "";
 const WEBHOOK_SECRET = Deno.env.get("TELEGRAM_WEBHOOK_SECRET") ?? "";
 
-const supabase = createClient(
-  Deno.env.get("SUPABASE_URL")!,
-  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-  { auth: { persistSession: false } },
-);
+// Prosjekter uten de gamle JWT-nøklene får bare de nye «secret keys»
+// (SUPABASE_SECRET_KEYS, JSON). Vi støtter begge.
+function serviceKey(): string {
+  const legacy = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (legacy) return legacy;
+  const json = Deno.env.get("SUPABASE_SECRET_KEYS");
+  if (json) {
+    try {
+      const first = Object.values(JSON.parse(json) as Record<string, string>)[0];
+      if (first) return first;
+    } catch { /* faller gjennom til feilen under */ }
+  }
+  throw new Error("Fant ingen service-nøkkel (SUPABASE_SERVICE_ROLE_KEY eller SUPABASE_SECRET_KEYS)");
+}
+
+const supabase = createClient(Deno.env.get("SUPABASE_URL")!, serviceKey(), {
+  auth: { persistSession: false },
+});
 
 type TgLocation = {
   latitude: number;

@@ -2,7 +2,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 set search_path = public, extensions;
-select plan(20);
+select plan(22);
 
 -- Testbrukere -------------------------------------------------------------
 insert into auth.users (id, aud, role) values
@@ -104,6 +104,20 @@ select ok((public.game_state()->>'game_s')::int between 3629 and 3632, 'spilltid
 -- Bare webhooken kan sende inn Telegram-posisjoner -----------------------------
 select throws_ok($$ select public.telegram_ingest_location(1, 58.0, 8.0) $$, '42501', null,
                  'vanlige brukere kan ikke kalle Telegram-funksjonene');
+
+
+-- Telegram-måling: bare spilleder, og hull regnes riktig -------------------
+select pg_temp.as_postgres();
+insert into public.positions (game_id, granny_id, source, geom, game_s, recorded_at) values
+  ('00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-0000000000a3', 'telegram', 'SRID=4326;POINT(8.59 58.34)', 1, now() - interval '300 seconds'),
+  ('00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-0000000000a3', 'telegram', 'SRID=4326;POINT(8.59 58.34)', 1, now() - interval '270 seconds'),
+  ('00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-0000000000a3', 'telegram', 'SRID=4326;POINT(8.59 58.34)', 1, now() - interval '30 seconds');
+select pg_temp.as_user('11111111-0000-0000-0000-000000000005');
+select is(
+  (select (g->>'max_gap_s')::numeric::int || '/' || (g->>'updates') from jsonb_array_elements(public.admin_telegram_stats(10)->'grannies') g where g->>'name' = 'Solveig'),
+  '240/3', 'målingen finner største hull og antall oppdateringer');
+select pg_temp.as_user('11111111-0000-0000-0000-000000000001');
+select throws_ok($$ select public.admin_telegram_stats(10) $$, '42501', null, 'lag kan ikke se målingen');
 
 select * from finish();
 rollback;

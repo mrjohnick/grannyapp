@@ -74,6 +74,22 @@ export type Zone = {
   geojson: GeoJSON.Point | GeoJSON.Polygon;
 };
 
+export type TelegramStats = {
+  window_min: number;
+  grannies: Array<{
+    id: string;
+    name: string;
+    linked: boolean;
+    updates: number;
+    median_gap_s: number | null;
+    p90_gap_s: number | null;
+    max_gap_s: number | null;
+    median_accuracy_m: number | null;
+    last_age_s: number | null;
+    live: boolean | null;
+  }>;
+};
+
 export type AdminLive = {
   game_s: number;
   grannies: Array<{
