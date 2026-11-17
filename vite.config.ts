@@ -30,6 +30,8 @@ export default defineConfig({
       },
       workbox: {
         navigateFallback: "/index.html",
+        // Web Push-håndtering (public/push-sw.js)
+        importScripts: ["push-sw.js"],
         globPatterns: ["**/*.{js,css,html,svg,woff2}"],
         maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
       },

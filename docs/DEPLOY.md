@@ -78,10 +78,49 @@ Appen deployes som en Worker med statiske filer (`wrangler.jsonc`). Det er det C
    | `VITE_SUPABASE_URL` | Project URL fra Supabase |
    | `VITE_SUPABASE_PUBLISHABLE_KEY` | Publishable key |
    | `VITE_TELEGRAM_BOT_USERNAME` | Brukernavnet til boten, uten @ |
+   | `VITE_VAPID_PUBLIC_KEY` | Fra `scripts/push-setup.sh` (steg 3b) |
 
 4. Deploy. Adressen blir `grannyapp.<konto>.workers.dev`. Sett den som Site URL i Supabase (steg 2.4).
 
 Kartet bruker OpenStreetMap-fliser så lenge `VITE_PMTILES_URL` ikke er satt. Det er greit for en felttest med noen få personer, men ikke for selve spillet.
+
+## 3b. Varsler og bakgrunnsjobber (terminal + SQL)
+
+Spillet lager varsler (ping, taxi, sladring, postkort, fangst …) i databasen. Appen viser dem når den er åpen. For å få dem som push når telefonen er låst, trengs Web Push.
+
+1. Deploy funksjonene (nå to: `telegram-webhook` og `game-worker`):
+
+   ```bash
+   pnpm deploy:functions
+   ```
+
+2. Lag push-nøkler og lagre dem i Supabase. Skriptet skriver ut den offentlige nøkkelen:
+
+   ```bash
+   ./scripts/push-setup.sh https://grannyapp.<konto>.workers.dev
+   ```
+
+   Legg den inn som `VITE_VAPID_PUBLIC_KEY` i Cloudflare (steg 3) og bygg på nytt.
+
+3. Fortell databasen hvor `game-worker` er. Kjør i Supabase → SQL Editor:
+
+   ```sql
+   insert into public.app_settings (key, value)
+   values ('worker_url', 'https://<prosjekt-ref>.supabase.co/functions/v1/game-worker')
+   on conflict (key) do update set value = excluded.value;
+   ```
+
+Uten steg 3 virker alt unntatt push.
+
+Bakgrunnsjobbene (pg_cron) settes opp av migrasjonen:
+
+| Jobb | Når | Hva |
+| --- | --- | --- |
+| `granny-tick` | Hvert 15. sek | Ping, postkort, 0:45-varselet, blindhet over, slutt kl. 2:30 |
+| `granny-push` | Hvert minutt | Sender push som ikke ble sendt med en gang |
+| `granny-purge` | Hver natt 03:17 | Sletter spill avsluttet for mer enn 30 dager siden, med bilder og anonyme brukere |
+
+**iPhone:** Push virker bare når appen er lagt til på Hjem-skjermen (Del → Legg til på Hjem-skjerm). Appen viser en knapp om dette.
 
 ## 4. Felttest
 

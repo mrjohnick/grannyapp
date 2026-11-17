@@ -98,16 +98,21 @@ export function GameMap({
   zones = [],
   markers = [],
   follow,
+  onClick,
 }: {
   zones?: Zone[];
   markers?: MapMarker[];
   /** Sentrer kartet her første gang den er kjent. */
   follow?: { lat: number; lng: number } | null;
+  /** Spilleders oppsett: trykk i kartet for å plassere soner. */
+  onClick?: (at: { lat: number; lng: number }) => void;
 }) {
   const container = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
   const placed = useRef(new Map<string, maplibregl.Marker>());
   const centered = useRef(false);
+  const clickRef = useRef(onClick);
+  clickRef.current = onClick;
 
   useEffect(() => {
     if (!container.current) return;
@@ -126,6 +131,7 @@ export function GameMap({
         paint: { "line-color": ["get", "color"], "line-width": ["case", ["==", ["get", "kind"], "area"], 3, 1.5],
                  "line-dasharray": [2, 2], "line-opacity": 0.7 } });
     });
+    m.on("click", (e) => clickRef.current?.({ lat: e.lngLat.lat, lng: e.lngLat.lng }));
     map.current = m;
     return () => {
       m.remove();

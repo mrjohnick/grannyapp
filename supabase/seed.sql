@@ -45,3 +45,8 @@ insert into public.zones (game_id, kind, number, label, geom, radius_m, opens_at
   ('00000000-0000-0000-0000-000000000001', 'postkort', 1, 'Postkort 1 (test)', 'SRID=4326;POINT(8.5900 58.3440)', 40, 1800, 3000, 'Testoppdrag 1: hele laget i ett hopp.'),
   ('00000000-0000-0000-0000-000000000001', 'postkort', 2, 'Postkort 2 (test)', 'SRID=4326;POINT(8.5990 58.3395)', 40, 4800, 6000, 'Testoppdrag 2: lag en bokstav med kroppene.'),
   ('00000000-0000-0000-0000-000000000001', 'postkort', 3, 'Postkort 3 (test)', 'SRID=4326;POINT(8.5840 58.3415)', 40, 7500, 8700, 'Testoppdrag 3: gruppebilde.');
+
+-- Lokalt: databasen vekker game-worker via Kong i Docker-nettverket.
+insert into public.app_settings (key, value)
+values ('worker_url', 'http://supabase_kong_grannyapp:8000/functions/v1/game-worker')
+on conflict (key) do update set value = excluded.value;

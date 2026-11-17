@@ -8,6 +8,8 @@ import { TelegramLink } from "./routes/TelegramLink";
 import { GrannyHome } from "./routes/GrannyHome";
 import { TeamHome } from "./routes/TeamHome";
 import { AdminLive } from "./routes/AdminLive";
+import { AdminSetup } from "./routes/AdminSetup";
+import { Summary } from "./routes/Summary";
 
 // Profilfontene (lisensierte) lastes bare når de finnes. Ellers brukes reservefontene.
 const brandFonts = import.meta.env.VITE_BRAND_FONTS_URL as string | undefined;
@@ -27,6 +29,8 @@ createRoot(document.getElementById("root")!).render(
         <Route path="/granny" element={<GameProvider role="granny"><GrannyHome /></GameProvider>} />
         <Route path="/lag" element={<GameProvider role="team"><TeamHome /></GameProvider>} />
         <Route path="/leder" element={<GameProvider role="admin"><AdminLive /></GameProvider>} />
+        <Route path="/leder/oppsett" element={<GameProvider role="admin"><AdminSetup /></GameProvider>} />
+        <Route path="/oppsummering" element={<GameProvider><Summary /></GameProvider>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>

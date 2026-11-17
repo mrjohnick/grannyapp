@@ -424,3 +424,7 @@ enabled = true
 # X-Telegram-Bot-Api-Secret-Token mot TELEGRAM_WEBHOOK_SECRET.
 [functions.telegram-webhook]
 verify_jwt = false
+
+# Vekkes av databasen (pg_net) og pg_cron, uten JWT. Se game-worker/index.ts.
+[functions.game-worker]
+verify_jwt = false

@@ -1,5 +1,6 @@
 // S1 · Spilleder – live-kontroll (forenklet)
 import { useCallback, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { useGame } from "../lib/game";
 import { useInterval } from "../lib/hooks";
@@ -9,6 +10,8 @@ import { Badge, Button, TeamDot } from "../components/ui";
 import { LogoLockup } from "../components/Logo";
 import { formatClock, formatCountdown } from "../lib/gameClock";
 import { AdminCatchQueue } from "../features/catch";
+import { AdminEventLog, AdminPhotoQueue, AdminTools } from "../features/admin";
+import { PushChip } from "../components/PushChip";
 import type { AdminLive as AdminLiveData, MapMarker, TelegramStats } from "../lib/types";
 
 const STALE_S = 60;
@@ -73,7 +76,14 @@ export function AdminLive() {
   return (
     <div className="flex h-dvh flex-col bg-bg-app lg:flex-row">
       <aside className="flex flex-col gap-4 overflow-y-auto border-border-strong bg-bg-surface p-5 lg:w-[380px] lg:border-r-2">
-        <LogoLockup scale={0.6} />
+        <div className="flex items-center justify-between gap-2">
+          <LogoLockup scale={0.6} />
+          <div className="flex gap-2">
+            <Link to="/leder/oppsett" className="rounded-full border-2 border-border-strong bg-bg-surface px-3 py-1 type-label-s">Oppsett</Link>
+            <Link to="/oppsummering" className="rounded-full border-2 border-border-strong bg-bg-surface px-3 py-1 type-label-s">Oppsummering</Link>
+          </div>
+        </div>
+        <PushChip />
         <section className="rounded-lg border-2 border-border-strong bg-bg-brand-subtle p-4 shadow-hard">
           <div className="flex items-center justify-between">
             <span className="type-label-caps text-text-secondary">Spilletid</span>
@@ -95,6 +105,7 @@ export function AdminLive() {
         </section>
 
         <AdminCatchQueue />
+        <AdminPhotoQueue teams={live?.teams ?? []} />
 
         {stale.length > 0 && (
           <section className="rounded-lg border-2 border-border-strong bg-bg-warning-subtle p-3">
@@ -104,6 +115,9 @@ export function AdminLive() {
             </p>
           </section>
         )}
+
+        <AdminTools live={live} />
+        <AdminEventLog />
 
         <TelegramStatsPanel stats={stats} windowMin={windowMin} onWindow={setWindowMin} />
 

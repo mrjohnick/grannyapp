@@ -1,6 +1,8 @@
-import { createContext, useContext, type ReactNode } from "react";
+import { createContext, useContext, useEffect, type ReactNode } from "react";
 import { Navigate } from "react-router-dom";
 import { useGameState } from "./hooks";
+import { EventsProvider } from "./events";
+import { refreshPush } from "./push";
 import type { GameState, Role } from "./types";
 
 type Ctx = ReturnType<typeof useGameState> & { state: GameState };
@@ -12,13 +14,18 @@ export function useGame() {
   return ctx;
 }
 
-/** Laster spilltilstand og sender spilleren til riktig side for rollen. */
-export function GameProvider({ role, children }: { role: Role; children: ReactNode }) {
+/** Laster spilltilstand og sender spilleren til riktig side for rollen. Uten `role` slipper alle roller inn. */
+export function GameProvider({ role, children }: { role?: Role; children: ReactNode }) {
   const game = useGameState();
+  useEffect(() => { refreshPush(); }, []);
   if (!game.loaded) return <div className="grid h-dvh place-items-center type-body-m text-text-secondary">Laster …</div>;
   if (!game.state) return <Navigate to="/" replace />;
-  if (game.state.role !== role) return <Navigate to={homeFor(game.state.role)} replace />;
-  return <GameContext.Provider value={{ ...game, state: game.state }}>{children}</GameContext.Provider>;
+  if (role && game.state.role !== role) return <Navigate to={homeFor(game.state.role)} replace />;
+  return (
+    <GameContext.Provider value={{ ...game, state: game.state }}>
+      <EventsProvider gameId={game.state.game_id} onEvent={() => game.refresh()}>{children}</EventsProvider>
+    </GameContext.Provider>
+  );
 }
 
 export function homeFor(role: Role) {

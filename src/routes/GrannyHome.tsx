@@ -1,21 +1,28 @@
-// G1 · Kart (granny)
-import { useCallback, useMemo, useState } from "react";
+// G1 · Kart (granny), med G2–G4 (taxi, sladring, bilder) og G5/G6 (fangst)
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { useGame } from "../lib/game";
+import { useEventVersion } from "../lib/events";
 import { useDevicePosition, useInterval, useWakeLock } from "../lib/hooks";
 import { useZones } from "../lib/useZones";
+import { distanceM, distanceText, inZone, zoneCenter } from "../lib/geo";
 import { GameMap, zoneMarkers } from "../map/GameMap";
 import { Badge, Button, Screen, TopBar } from "../components/ui";
 import { Icon } from "../components/Icon";
-import type { MapMarker } from "../lib/types";
+import { PushChip } from "../components/PushChip";
+import type { GrannyMap, GrannyStatus, MapMarker } from "../lib/types";
 import { CaughtCard, GrannyCatchDialog } from "../features/catch";
+import { GrannyPoints, PhotoSheet, SnitchSheet, TaxiSheet } from "../features/granny";
+
+type Panel = "taxi" | "snitch" | "photo" | null;
 
 export function GrannyHome() {
   const { state, gameS, refresh } = useGame();
+  const { version } = useEventVersion();
   const granny = state.granny!;
   const zones = useZones();
-  const { coords, error: gpsError } = useDevicePosition(!granny.caught);
+  const { coords, error: gpsError } = useDevicePosition(!granny.caught && state.status !== "ended");
   useWakeLock(state.status === "running");
 
   const [tgAge, setTgAge] = useState<number | null | undefined>(undefined);
@@ -25,13 +32,36 @@ export function GrannyHome() {
   }, []);
   useInterval(loadTelegram, 15_000);
 
+  const [status, setStatus] = useState<GrannyStatus | null>(null);
+  const [map, setMap] = useState<GrannyMap | null>(null);
+  const load = useCallback(async () => {
+    const [st, mp] = await Promise.all([supabase.rpc("granny_status"), supabase.rpc("granny_map")]);
+    if (st.data) setStatus(st.data as GrannyStatus);
+    if (mp.data) setMap(mp.data as GrannyMap);
+  }, []);
+  useInterval(load, 15_000);
+  useEffect(() => { if (version) load(); }, [version, load]);
+
+  const [panel, setPanel] = useState<Panel>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+
+  const kaffekroken = zones.find((z) => z.kind === "kaffekroken");
+  const bingo = zones.find((z) => z.kind === "bingo");
+  const inKaffekroken = !!kaffekroken && inZone(kaffekroken, coords);
+  const inBingo = !!bingo && inZone(bingo, coords);
+  const kaffeCenter = kaffekroken ? zoneCenter(kaffekroken) : null;
+  const kaffeDistance = coords && kaffeCenter ? distanceText(distanceM(coords, kaffeCenter)) : null;
+
   const markers = useMemo<MapMarker[]>(() => {
     const list = zoneMarkers(zones);
+    for (const m of map?.markers ?? []) list.push({ key: `anonym-${m.at_s}`, kind: "anonym", lat: m.lat, lng: m.lng, label: "Noen sladret" });
     if (coords) list.push({ key: "meg", kind: "meg", lat: coords.lat, lng: coords.lng, label: "Deg" });
     return list;
-  }, [zones, coords]);
+  }, [zones, map, coords]);
 
   const tgOk = tgAge != null && tgAge <= 60;
+  const running = state.status === "running";
+  const active = running && !granny.caught;
 
   return (
     <Screen>
@@ -39,7 +69,7 @@ export function GrannyHome() {
       <main className="relative flex-1">
         <GameMap zones={zones} markers={markers} follow={coords} />
 
-        <div className="absolute top-4 left-4 flex flex-col items-start gap-2">
+        <div className="absolute top-4 left-4 right-4 flex flex-col items-start gap-2">
           <div className="flex items-center gap-3 rounded-full border-2 border-border-strong bg-bg-surface py-2 pr-4 pl-2 shadow-md">
             <span className="grid size-10 place-items-center rounded-full border-2 border-border-brand bg-bg-brand-subtle type-heading-l text-text-brand">
               {granny.name[0]}
@@ -50,7 +80,8 @@ export function GrannyHome() {
             </div>
             {granny.caught ? <Badge tone="danger">Fanget</Badge> : <Badge tone="success">Fri</Badge>}
           </div>
-          {tgAge !== undefined && !granny.caught && (
+          <GrannyPoints status={status} isRomling={granny.is_romling} />
+          {tgAge !== undefined && !granny.caught && state.status !== "ended" && (
             <Link
               to="/granny/telegram"
               className={`flex items-center gap-1 rounded-full border border-border-strong px-3 py-1 type-label-s ${tgOk ? "bg-bg-success-subtle" : "bg-bg-warning"}`}
@@ -59,17 +90,58 @@ export function GrannyHome() {
               {tgOk ? `Telegram live · ${tgAge} s` : "Telegram: ingen posisjon – trykk her"}
             </Link>
           )}
+          <PushChip />
+          {granny.is_romling && status && !status.license_given && !granny.caught && (
+            <div className="rounded-md bg-bg-info-subtle px-3 py-2 type-body-s">Du kan være innendørs til et lag har knekt koden.</div>
+          )}
           {gpsError && <div className="rounded-md bg-bg-danger-subtle px-3 py-2 type-body-s">{gpsError}</div>}
+          {notice && (
+            <button type="button" onClick={() => setNotice(null)} className="rounded-md bg-bg-success-subtle px-3 py-2 text-left type-label-s">
+              {notice}
+            </button>
+          )}
         </div>
 
-        {granny.caught ? (
-          <div className="absolute inset-x-4 bottom-6"><CaughtCard grannyId={granny.id} /></div>
-        ) : (
-          <div className="absolute inset-x-4 bottom-5 flex gap-3">
-            {/* Kamera og taxi kommer i neste steg */}
-            <Button icon="camera" className="flex-1" disabled>Ta bilde</Button>
-            <Button icon="taxi" variant="secondary" disabled>Taxi</Button>
-          </div>
+        <div className="absolute inset-x-4 bottom-5 flex flex-col gap-3">
+          {state.status === "ended" && (
+            <Link to="/oppsummering" className="block"><Button icon="trophy" block>Se oppsummeringen</Button></Link>
+          )}
+          {granny.caught && state.status !== "ended" && <CaughtCard grannyId={granny.id} />}
+          {!granny.caught && state.status !== "ended" && (
+            <div className="flex gap-3">
+              {!granny.is_romling && (
+                <Button icon="camera" className="flex-1" disabled={!active || !status} onClick={() => setPanel("photo")}>Ta bilde</Button>
+              )}
+              <Button icon="taxi" variant="secondary" className={granny.is_romling ? "flex-1" : ""} disabled={!active || !status} onClick={() => setPanel("taxi")}>
+                Taxi
+              </Button>
+              {!granny.is_romling && (
+                <Button
+                  icon="megaphone"
+                  variant={inKaffekroken && !status?.snitch_used ? "primary" : "secondary"}
+                  disabled={!active || !status || status.snitch_used}
+                  onClick={() => setPanel("snitch")}
+                  aria-label="Sladre"
+                />
+              )}
+            </div>
+          )}
+        </div>
+
+        {panel === "taxi" && status && (
+          <TaxiSheet status={status} gameS={gameS} coords={coords} isRomling={granny.is_romling}
+            onClose={() => setPanel(null)}
+            onDone={(s) => { setStatus(s); setPanel(null); setNotice("Taxituren er registrert."); }} />
+        )}
+        {panel === "snitch" && status && (
+          <SnitchSheet status={status} coords={coords} inKaffekroken={inKaffekroken} distanceText={kaffeDistance}
+            onClose={() => setPanel(null)}
+            onDone={(s) => { setStatus(s); setPanel(null); setNotice("Du har sladret. Hun er live hos lagene nå."); load(); }} />
+        )}
+        {panel === "photo" && status && (
+          <PhotoSheet status={status} gameS={gameS} gameId={state.game_id} coords={coords} inBingo={inBingo}
+            onClose={() => setPanel(null)}
+            onDone={(msg) => { setPanel(null); setNotice(msg); load(); }} />
         )}
         {!granny.caught && <GrannyCatchDialog onResolved={refresh} />}
       </main>

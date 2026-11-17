@@ -90,11 +90,16 @@ select results_eq(
   $$ select p.proname::text collate "C" from pg_proc p join pg_namespace n on n.oid = p.pronamespace
      where n.nspname = 'public' and has_function_privilege('authenticated', p.oid, 'execute')
      order by 1 $$,
-  $$ select v::text collate "C" from (values ('admin_catch_queue'), ('admin_live'), ('admin_resolve_catch'), ('admin_set_status'), ('admin_telegram_stats'),
-            ('game_seconds'), ('game_state'), ('granny_pending_catches'), ('granny_respond_catch'), ('i_am_romling'),
-            ('int_array_is_sorted'), ('is_admin_of'), ('join_game'), ('last_ping_s'), ('me'), ('my_game_id'),
-            ('my_granny_id'), ('my_role'), ('my_team_id'), ('my_telegram'), ('next_ping_s'), ('register_catch'),
-            ('report_position'), ('team_catches'), ('team_has_license'), ('team_map'), ('zone_visible')) x(v) $$,
+  $$ select v::text collate "C" from (values ('admin_adjust_points'), ('admin_broadcast'), ('admin_catch_queue'), ('admin_delete'),
+            ('admin_live'), ('admin_photos'), ('admin_resolve_catch'), ('admin_review_photo'), ('admin_save_granny'),
+            ('admin_save_team'), ('admin_save_zone'), ('admin_set_status'), ('admin_setup'), ('admin_telegram_stats'),
+            ('admin_update_game'), ('can_upload_photo'), ('can_view_photo'), ('game_seconds'), ('game_state'), ('game_summary'),
+            ('granny_map'), ('granny_pending_catches'), ('granny_respond_catch'), ('granny_snitch'), ('granny_status'),
+            ('granny_taxi'), ('i_am_romling'), ('int_array_is_sorted'), ('is_admin_of'), ('join_game'), ('last_ping_s'),
+            ('me'), ('my_events'), ('my_game_id'), ('my_granny_id'), ('my_role'), ('my_team_id'), ('my_telegram'),
+            ('next_ping_s'), ('register_catch'), ('report_position'), ('save_push_subscription'), ('submit_photo'),
+            ('team_catches'), ('team_has_license'), ('team_map'), ('team_nabovakt'), ('team_romling_guess'),
+            ('team_status'), ('zone_visible')) x(v) $$,
   'bare tillatte funksjoner kan kalles av klienter');
 
 select * from finish();
