@@ -16,7 +16,8 @@ KEYS="$(npx -y web-push@3.6.7 generate-vapid-keys --json)"
 PUBLIC="$(node -e 'console.log(JSON.parse(process.argv[1]).publicKey)' "$KEYS")"
 PRIVATE="$(node -e 'console.log(JSON.parse(process.argv[1]).privateKey)' "$KEYS")"
 
-npx supabase secrets set \
+# --yes: utdataene sendes til /dev/null, så Supabase kan ikke spørre selv.
+npx supabase secrets set --yes \
   "VAPID_PUBLIC_KEY=${PUBLIC}" \
   "VAPID_PRIVATE_KEY=${PRIVATE}" \
   "VAPID_SUBJECT=${APP_URL}" >/dev/null
