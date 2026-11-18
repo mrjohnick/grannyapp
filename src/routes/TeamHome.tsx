@@ -14,7 +14,7 @@ import { PushChip } from "../components/PushChip";
 import { formatCountdown, formatGameTime } from "../lib/gameClock";
 import type { MapMarker, TeamMap, TeamStatus } from "../lib/types";
 import { TeamCatchSheet, TeamCatchStatus } from "../features/catch";
-import { NabovaktSheet, PostkortSheet, RomlingSheet, ScoreSheet } from "../features/team";
+import { AlbumRevealSheet, markAlbumSeen, NabovaktSheet, PostkortSheet, RomlingSheet, ScoreSheet, unseenAlbumPhoto } from "../features/team";
 
 type Panel = "catch" | "nabovakt" | "romling" | "postkort" | "score" | null;
 
@@ -56,6 +56,8 @@ export function TeamHome() {
 
   const blindUntil = map?.blind_until_s ?? team.blind_until_s;
   const blind = blindUntil != null && blindUntil > gameS;
+  // Når blindheten er over, viser vi bildet som blindet laget (én gang per bilde).
+  const albumPhoto = blind || panel ? null : unseenAlbumPhoto(status, team.id);
 
   const markers = useMemo<MapMarker[]>(() => {
     if (blind) return [];
@@ -177,6 +179,9 @@ export function TeamHome() {
             onDone={(msg) => { setPanel(null); setNotice(msg); loadStatus(); }} />
         )}
         {panel === "score" && status && <ScoreSheet status={status} teamId={team.id} onClose={() => setPanel(null)} />}
+        {albumPhoto && status && (
+          <AlbumRevealSheet photo={albumPhoto} onClose={() => { markAlbumSeen(status, team.id); setStatus({ ...status }); }} />
+        )}
       </main>
     </Screen>
   );

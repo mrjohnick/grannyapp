@@ -247,3 +247,47 @@ export function ScoreSheet({ status, teamId, onClose }: { status: TeamStatus; te
     </Sheet>
   );
 }
+
+// ---------------------------------------------------------------------------
+// Fotoalbumet: bildet vises når blindheten er over
+// ---------------------------------------------------------------------------
+const seenKey = (teamId: string) => `granny.album.${teamId}`;
+
+function readSeen(teamId: string): string[] {
+  try {
+    return JSON.parse(localStorage.getItem(seenKey(teamId)) ?? "[]") as string[];
+  } catch {
+    return [];
+  }
+}
+
+/** Det nyeste Fotoalbum-bildet laget ikke har sett ennå, eller null. */
+export function unseenAlbumPhoto(status: TeamStatus | null, teamId: string) {
+  if (!status || status.album_photos.length === 0) return null;
+  const seen = readSeen(teamId);
+  return status.album_photos.find((p) => !seen.includes(p.id)) ?? null;
+}
+
+export function markAlbumSeen(status: TeamStatus, teamId: string) {
+  try {
+    localStorage.setItem(seenKey(teamId), JSON.stringify(status.album_photos.map((p) => p.id)));
+  } catch { /* privat modus */ }
+}
+
+export function AlbumRevealSheet({ photo, onClose }: {
+  photo: TeamStatus["album_photos"][number];
+  onClose: () => void;
+}) {
+  return (
+    <Sheet onClose={onClose}>
+      <h2 className="type-display-m">Her er bildet</h2>
+      <p className="type-body-m text-text-secondary">
+        Dette bildet gjorde dere blinde ved {formatGameTime(photo.at_s)}. Hvem som tok det, får dere vite etter spillet.
+      </p>
+      <figure className="overflow-hidden rounded-lg border-2 border-border-strong">
+        <StoredPhoto path={photo.storage_path} className="aspect-[3/4] w-full object-cover" />
+      </figure>
+      <Button block onClick={onClose}>Videre</Button>
+    </Sheet>
+  );
+}
