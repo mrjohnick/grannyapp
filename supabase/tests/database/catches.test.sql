@@ -91,7 +91,7 @@ select results_eq(
      where n.nspname = 'public' and has_function_privilege('authenticated', p.oid, 'execute')
      order by 1 $$,
   $$ select v::text collate "C" from (values ('admin_adjust_points'), ('admin_broadcast'), ('admin_catch_queue'), ('admin_delete'),
-            ('admin_live'), ('admin_photos'), ('admin_resolve_catch'), ('admin_review_photo'), ('admin_save_granny'),
+            ('admin_live'), ('admin_photos'), ('admin_reset_game'), ('admin_resolve_catch'), ('admin_reveal_granny'), ('admin_review_photo'), ('admin_save_granny'),
             ('admin_save_team'), ('admin_save_zone'), ('admin_set_status'), ('admin_setup'), ('admin_telegram_stats'),
             ('admin_update_game'), ('can_upload_photo'), ('can_view_photo'), ('game_seconds'), ('game_state'), ('game_summary'),
             ('granny_map'), ('granny_pending_catches'), ('granny_respond_catch'), ('granny_snitch'), ('granny_status'),

@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { useGame, homeFor } from "../lib/game";
 import { friendly } from "../lib/errors";
+import { tagText, useFamilies } from "../lib/families";
 import { formatGameTime } from "../lib/gameClock";
 import type { Summary as SummaryData } from "../lib/types";
 import { Badge, TeamDot } from "../components/ui";
@@ -14,6 +15,7 @@ export function Summary() {
   const { state } = useGame();
   const [data, setData] = useState<SummaryData | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const { tagOf } = useFamilies();
 
   useEffect(() => {
     supabase.rpc("game_summary").then(({ data, error }) => {
@@ -60,7 +62,7 @@ export function Summary() {
                   <li key={g.id} className={`flex items-center gap-3 rounded-md px-3 py-2 ${state.granny?.id === g.id ? "bg-bg-brand-subtle" : ""}`}>
                     <span className="w-6 type-timer-m">{i + 1}</span>
                     <span className="flex-1">
-                      <span className="block type-label-l">{g.name}</span>
+                      <span className="block type-label-l">{g.name} <span className="type-body-s text-text-secondary">{tagText(tagOf(g.id))}</span></span>
                       <span className="block type-body-s text-text-secondary">
                         {g.catch_order ? `Fanget som nr. ${g.catch_order} av ${g.caught_by} (${formatGameTime(g.caught_at_s!)})` : "Aldri fanget"}
                         {` · ${g.placement}p + ${g.tasks}p oppgaver`}

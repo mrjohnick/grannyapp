@@ -56,7 +56,7 @@ export type TeamMap = {
     kind: "granny" | "own_granny" | "live" | "romling" | "anonym";
     id: string | null;
     name: string | null;
-    live_reason: "sladret" | "utenfor" | "bingo" | null;
+    live_reason: "sladret" | "spilleder" | "utenfor" | "bingo" | null;
     lat: number;
     lng: number;
     accuracy_m: number | null;

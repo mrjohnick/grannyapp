@@ -1,6 +1,7 @@
 // Fangst: L2 (lag registrerer), G5 (granny bekrefter), G6 (fanget), S1-kø.
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
+import { useFamilies, type GrannyTag } from "../lib/families";
 import { useInterval } from "../lib/hooks";
 import { formatCountdown, formatGameTime } from "../lib/gameClock";
 import type { AdminCatch, GameState, GrannyRow, PendingClaim, TeamCatch } from "../lib/types";
@@ -32,6 +33,7 @@ export function TeamCatchSheet({ state, gameS, onClose, onRegistered }: {
   const [selected, setSelected] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { tagOf } = useFamilies();
 
   useEffect(() => {
     supabase.from("grannies").select("id, name, is_romling, caught_at_s").then(({ data }) => {
@@ -71,7 +73,7 @@ export function TeamCatchSheet({ state, gameS, onClose, onRegistered }: {
         <SelectRow
           key={g.id}
           title={g.name}
-          subtitle={`${g.id === team.assigned_granny_id ? "Deres granny · " : g.is_romling ? "Rømlingen · " : ""}${points(g)}p`}
+          subtitle={`${g.id === team.assigned_granny_id ? "Deres granny" : g.is_romling ? "Rømlingen" : familyText(tagOf(g.id))} · ${points(g)}p`}
           lead={<Initial name={g.name} />}
           selected={g.id === selected}
           onClick={() => setSelected(g.id)}
@@ -286,4 +288,9 @@ export function AdminCatchQueue() {
       ))}
     </section>
   );
+}
+
+function familyText(tag: GrannyTag | null) {
+  if (!tag) return "Granny";
+  return tag.kind === "family" ? `${tag.team.name} sin granny` : "★ Bonus-granny, ingen familie";
 }

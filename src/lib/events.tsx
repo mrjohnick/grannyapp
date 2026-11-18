@@ -21,10 +21,10 @@ const ICONS: Record<string, IconName> = {
   nabovakt_seen: "eye", nabovakt_result: "eye", postkort_open: "camera", postkort_won: "camera", postkort_closed: "camera",
   romling_reveal: "moon", license: "lock", catch_registered: "target", catch_confirmed: "target", catch_overdue: "alert",
   photo_pending: "camera", photo_approved: "check", photo_rejected: "x", message: "bell", end: "trophy", start: "play",
-  pause: "pause", resume: "play",
+  pause: "pause", resume: "play", reveal: "eye", reveal_target: "eye",
 };
 
-const URGENT = new Set(["catch_registered", "snitch_target", "nabovakt_seen", "blind", "license", "catch_overdue", "romling_reveal"]);
+const URGENT = new Set(["catch_registered", "snitch_target", "reveal_target", "nabovakt_seen", "blind", "license", "catch_overdue", "romling_reveal"]);
 const SHOW_FOR_MS = 9000;
 const storageKey = (gameId: string) => `granny.events.${gameId}`;
 
@@ -43,7 +43,8 @@ export function EventsProvider({ gameId, onEvent, children }: { gameId: string; 
   const poll = useCallback(async () => {
     const { data, error } = await supabase.rpc("my_events", { p_after: lastId.current ?? 0 });
     if (error || !data) return;
-    const events = data as GameEvent[];
+    // To henteforsøk kan overlappe (f.eks. ved oppstart). Ta bare med det som er nytt.
+    const events = (data as GameEvent[]).filter((e) => e.id > (lastId.current ?? 0));
     if (events.length === 0) return;
     lastId.current = events[events.length - 1].id;
     try { localStorage.setItem(storageKey(gameId), String(lastId.current)); } catch { /* privat modus */ }

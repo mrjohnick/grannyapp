@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { useGame } from "../lib/game";
 import { useEventVersion } from "../lib/events";
+import { useFamilies } from "../lib/families";
 import { useDevicePosition, useInterval, useWakeLock } from "../lib/hooks";
 import { useZones } from "../lib/useZones";
 import { distanceM, distanceText, inZone, zoneCenter } from "../lib/geo";
@@ -21,6 +22,7 @@ export function GrannyHome() {
   const { state, gameS, refresh } = useGame();
   const { version } = useEventVersion();
   const granny = state.granny!;
+  const tag = useFamilies().tagOf(granny.id);
   const zones = useZones();
   const { coords, error: gpsError } = useDevicePosition(!granny.caught && state.status !== "ended");
   useWakeLock(state.status === "running");
@@ -76,7 +78,12 @@ export function GrannyHome() {
             </span>
             <div>
               <div className="type-label-m">{granny.name}</div>
-              <div className="type-body-s text-text-secondary">{granny.is_romling ? "Rømlingen" : "Granny"}</div>
+              <div className="type-body-s text-text-secondary">
+                {granny.is_romling ? "Rømlingen"
+                  : tag?.kind === "family" ? `Granny · familien din er ${tag.team.name}`
+                  : tag?.kind === "bonus" ? "★ Bonus-granny · ingen egen familie"
+                  : "Granny"}
+              </div>
             </div>
             {granny.caught ? <Badge tone="danger">Fanget</Badge> : <Badge tone="success">Fri</Badge>}
           </div>

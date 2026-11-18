@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { useGame } from "../lib/game";
 import { useEventVersion } from "../lib/events";
+import { tagText, useFamilies } from "../lib/families";
 import { useDevicePosition, useInterval, useOnPing, useWakeLock } from "../lib/hooks";
 import { useZones } from "../lib/useZones";
 import { inZone } from "../lib/geo";
@@ -18,7 +19,7 @@ import { AlbumRevealSheet, markAlbumSeen, NabovaktSheet, PostkortSheet, RomlingS
 
 type Panel = "catch" | "nabovakt" | "romling" | "postkort" | "score" | null;
 
-const LIVE_TEXT = { sladret: "sladret på", utenfor: "utenfor området", bingo: "Bingo" } as const;
+const LIVE_TEXT = { sladret: "sladret på", spilleder: "vist av spilleder", utenfor: "utenfor området", bingo: "Bingo" } as const;
 
 export function TeamHome() {
   const { state, gameS, refresh } = useGame();
@@ -34,6 +35,7 @@ export function TeamHome() {
   const [panel, setPanel] = useState<Panel>(null);
   const [catchKey, setCatchKey] = useState(0);
   const [notice, setNotice] = useState<string | null>(null);
+  const { tagOf } = useFamilies();
 
   const load = useCallback(async () => {
     const { data, error } = await supabase.rpc("team_map");
@@ -63,14 +65,17 @@ export function TeamHome() {
     if (blind) return [];
     const list = zoneMarkers(zones);
     for (const m of map?.markers ?? []) {
+      // Hver granny merkes med familien sin (laget) eller «★ Bonus».
+      const tag = m.kind === "own_granny" ? "Deres" : tagText(tagOf(m.id));
+      const who = tag ? `${m.name} (${tag})` : m.name;
       const label = m.kind === "romling" ? "???"
         : m.kind === "anonym" ? "Noen sladret"
-        : m.live_reason ? `${m.name} · ${LIVE_TEXT[m.live_reason]}` : m.name;
+        : m.live_reason ? `${who} · ${LIVE_TEXT[m.live_reason]}` : who;
       list.push({ key: m.id ?? `${m.kind}-${m.at_s}`, kind: m.kind, lat: m.lat, lng: m.lng, label });
     }
     if (coords) list.push({ key: "meg", kind: "meg", lat: coords.lat, lng: coords.lng, label: "Dere" });
     return list;
-  }, [blind, zones, map, coords]);
+  }, [blind, zones, map, coords, tagOf]);
 
   const free = map?.markers.filter((m) => m.kind !== "romling" && m.kind !== "anonym").length ?? 0;
   const running = state.status === "running";

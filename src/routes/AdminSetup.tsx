@@ -1,5 +1,5 @@
 // S2 · Oppsett: tider, grannies, lag og soner. Tider, grannies og lag kan
-// bare endres før spillet starter; navn og soner kan justeres underveis.
+// bare endres før spillet starter; navn, regler og soner kan justeres underveis.
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "../lib/supabase";
@@ -68,7 +68,7 @@ export function AdminSetup() {
           <Badge tone={locked ? "warning" : "brand"}>{locked ? "Spillet er i gang" : "Oppsett"}</Badge>
         </div>
         <h1 className="type-display-m">Oppsett</h1>
-        {locked && <p className="rounded-md bg-bg-warning-subtle p-3 type-body-s">Tider, grannies og lag er låst når spillet har startet. Navn og soner kan fortsatt endres.</p>}
+        {locked && <p className="rounded-md bg-bg-warning-subtle p-3 type-body-s">Tider, grannies og lag er låst når spillet har startet. Navn, regler og soner kan fortsatt endres.</p>}
         {error && <p className="sticky top-0 z-10 rounded-md bg-bg-danger-subtle p-3 type-body-s text-text-danger">{error}</p>}
         {saved && <p className="sticky top-0 z-10 rounded-md bg-bg-success-subtle p-3 type-body-s">{saved}</p>}
 
@@ -101,11 +101,12 @@ function GameSettings({ data, locked, save }: { data: SetupData; locked: boolean
       return setProblem("Skriv tider som t:mm, f.eks. 0:15 eller 2:30. Ping-tider skilles med komma.");
     }
     setProblem(null);
-    if (locked) return save({ name });
-    save({
-      name, duration_s: duration, head_start_s: head, romling_reveal_s: reveal, ping_schedule_s: pings,
-      rules: Object.fromEntries(RULES.map(([k, , unit]) => [k, Math.round(Number(rules[k]) * (unit === "min" ? 60 : 1))])),
-    });
+    const ruleValues = RULES.map(([k, , unit]) => [k, Math.round(Number(rules[k]) * (unit === "min" ? 60 : 1))] as const);
+    if (ruleValues.some(([, v]) => !Number.isFinite(v) || v < 0)) return setProblem("Reglene må være tall som er 0 eller mer.");
+    const ruleObj = Object.fromEntries(ruleValues);
+    // Etter start kan bare navn og regler endres.
+    if (locked) return save({ name, rules: ruleObj });
+    save({ name, duration_s: duration, head_start_s: head, romling_reveal_s: reveal, ping_schedule_s: pings, rules: ruleObj });
   }
 
   return (
@@ -123,11 +124,11 @@ function GameSettings({ data, locked, save }: { data: SetupData; locked: boolean
         <textarea className={`${field} h-16 py-1`} disabled={locked} value={times.pings} onChange={(e) => setTimes({ ...times, pings: e.target.value })} />
       </label>
       <details>
-        <summary className="cursor-pointer type-label-s text-text-brand">Regler</summary>
+        <summary className="cursor-pointer type-label-s text-text-brand">Regler{locked ? " (kan endres underveis)" : ""}</summary>
         <div className="mt-2 grid grid-cols-2 gap-2">
           {RULES.map(([k, label]) => (
             <label key={k} className="flex flex-col gap-1 type-body-s">{label}
-              <input className={field} disabled={locked} inputMode="numeric" value={rules[k]} onChange={(e) => setRules({ ...rules, [k]: e.target.value })} />
+              <input className={field} inputMode="numeric" value={rules[k]} onChange={(e) => setRules({ ...rules, [k]: e.target.value })} />
             </label>
           ))}
         </div>
@@ -146,7 +147,7 @@ function Grannies({ data, locked, call }: { data: SetupData; locked: boolean; ca
   return (
     <section className="flex flex-col gap-2">
       <h2 className="type-heading-m">Grannies <span className="type-body-s text-text-tertiary">({data.grannies.length})</span></h2>
-      {data.grannies.map((g) => <GrannyRow key={g.id} g={g} locked={locked} call={call} />)}
+      {data.grannies.map((g) => <GrannyRow key={g.id} g={g} family={data.teams.find((t) => t.assigned_granny_id === g.id)?.name ?? null} locked={locked} call={call} />)}
       {!locked && (
         <div className="flex gap-2">
           <input className={`${field} flex-1`} value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="Ny granny" />
@@ -156,12 +157,12 @@ function Grannies({ data, locked, call }: { data: SetupData; locked: boolean; ca
           </Button>
         </div>
       )}
-      <p className="type-body-s text-text-tertiary">Rømlingens navn er hemmelig. Det lagres bare i databasen.</p>
+      <p className="type-body-s text-text-tertiary">En granny som ikke er «egen granny» for noe lag, er bonus-granny. Rømlingens navn er hemmelig. Det lagres bare i databasen.</p>
     </section>
   );
 }
 
-function GrannyRow({ g, locked, call }: { g: SetupData["grannies"][number]; locked: boolean; call: Call }) {
+function GrannyRow({ g, family, locked, call }: { g: SetupData["grannies"][number]; family: string | null; locked: boolean; call: Call }) {
   const [name, setName] = useState(g.name);
   const [rom, setRom] = useState(g.is_romling);
   const dirty = name !== g.name || rom !== g.is_romling;
@@ -176,7 +177,8 @@ function GrannyRow({ g, locked, call }: { g: SetupData["grannies"][number]; lock
           <Icon name="x" size={20} />
         </button>
       )}
-      <div className="flex w-full gap-2 type-body-s text-text-secondary">
+      <div className="flex w-full flex-wrap gap-2 type-body-s text-text-secondary">
+        {!g.is_romling && (family ? <Badge tone="neutral">Familie: {family}</Badge> : <Badge tone="warning">★ Bonus-granny</Badge>)}
         <span className="type-timer-s">{g.code}</span>
         <span>· {g.phones} tlf</span>
         <span className={g.telegram_linked ? "text-text-success" : "text-text-warning"}>· {g.telegram_linked ? "Telegram koblet" : "Telegram ikke koblet"}</span>

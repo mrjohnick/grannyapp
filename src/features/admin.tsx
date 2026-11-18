@@ -191,3 +191,48 @@ export function AdminEventLog() {
     </section>
   );
 }
+
+// ---------------------------------------------------------------------------
+// Vis en granny live for alle lag
+// ---------------------------------------------------------------------------
+export function AdminReveal({ live }: { live: AdminLive | null }) {
+  const [granny, setGranny] = useState("");
+  const [minutes, setMinutes] = useState("2");
+  const [msg, setMsg] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const free = (live?.grannies ?? []).filter((g) => !g.is_romling && g.caught_at_s == null);
+  const liveNow = free.filter((g) => g.live_reason === "spilleder");
+
+  async function reveal(e: FormEvent) {
+    e.preventDefault();
+    const n = Number(minutes);
+    if (!granny || !Number.isInteger(n) || n < 1 || n > 30) return setMsg("Velg en granny og 1–30 minutter.");
+    setBusy(true);
+    const { error } = await supabase.rpc("admin_reveal_granny", { p_granny: granny, p_minutes: n });
+    setBusy(false);
+    const name = free.find((g) => g.id === granny)?.name;
+    setMsg(error ? friendly(error) : `${name} er live for alle lag i ${n} min.`);
+    if (!error) setGranny("");
+  }
+
+  return (
+    <section className="flex flex-col gap-2 rounded-lg border border-border-default p-3">
+      <h2 className="type-heading-m">Vis granny live</h2>
+      <p className="type-body-s text-text-secondary">Lagene ser posisjonen hele tiden, ikke bare ved ping. Blinde lag ser den ikke.</p>
+      <form onSubmit={reveal} className="flex flex-col gap-2">
+        <select className={field} value={granny} onChange={(e) => setGranny(e.target.value)}>
+          <option value="">Velg granny</option>
+          {free.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
+        </select>
+        <div className="flex gap-2">
+          <label className="flex items-center gap-2 type-body-s">
+            <input className={`${field} w-20`} inputMode="numeric" value={minutes} onChange={(e) => setMinutes(e.target.value)} /> min
+          </label>
+          <Button size="M" icon="eye" type="submit" className="flex-1" disabled={busy || !granny}>Vis live</Button>
+        </div>
+      </form>
+      {liveNow.length > 0 && <p className="type-body-s">Live nå: {liveNow.map((g) => g.name).join(", ")}</p>}
+      {msg && <p className="type-body-s text-text-secondary">{msg}</p>}
+    </section>
+  );
+}

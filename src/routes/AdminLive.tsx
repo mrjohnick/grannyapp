@@ -5,12 +5,13 @@ import { supabase } from "../lib/supabase";
 import { useGame } from "../lib/game";
 import { useInterval } from "../lib/hooks";
 import { useZones } from "../lib/useZones";
+import { tagText, useFamilies } from "../lib/families";
 import { GameMap, zoneMarkers } from "../map/GameMap";
 import { Badge, Button, TeamDot } from "../components/ui";
 import { LogoLockup } from "../components/Logo";
 import { formatClock, formatCountdown } from "../lib/gameClock";
 import { AdminCatchQueue } from "../features/catch";
-import { AdminEventLog, AdminPhotoQueue, AdminTools } from "../features/admin";
+import { AdminEventLog, AdminPhotoQueue, AdminReveal, AdminTools } from "../features/admin";
 import { PushChip } from "../components/PushChip";
 import type { AdminLive as AdminLiveData, MapMarker, TelegramStats } from "../lib/types";
 
@@ -27,6 +28,7 @@ export function AdminLive() {
   const [live, setLive] = useState<AdminLiveData | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { tagOf } = useFamilies(state.status);
 
   const load = useCallback(async () => {
     const { data, error } = await supabase.rpc("admin_live");
@@ -41,6 +43,15 @@ export function AdminLive() {
     if (!error) setStats(data as TelegramStats);
   }, [windowMin]);
   useInterval(loadStats, 15_000);
+
+  async function restart() {
+    if (!confirm("Starte spillet på nytt?\n\nAlle fangster, poeng, bilder og varsler fra runden som er ferdig, slettes. Grannies, lag, innloggingslenker, soner og regler beholdes, og alle forblir innlogget.")) return;
+    setBusy(true);
+    const { error } = await supabase.rpc("admin_reset_game");
+    setBusy(false);
+    setError(error?.message ?? null);
+    refresh();
+  }
 
   async function setStatus(action: "start" | "pause" | "resume" | "end") {
     if (action === "end" && !confirm("Avslutte spillet nå? Det kan ikke angres.")) return;
@@ -59,7 +70,7 @@ export function AdminLive() {
         key: g.id,
         kind: g.live_reason ? "live" : g.is_romling ? "romling" : "granny",
         lat: g.lat, lng: g.lng,
-        label: `${g.name}${g.is_romling ? " (Rømling)" : ""} · ${ageText(g.age_s)}`,
+        label: `${g.name} (${g.is_romling ? "Rømling" : tagText(tagOf(g.id)) ?? "–"}) · ${ageText(g.age_s)}`,
       });
     }
     for (const t of live?.teams ?? []) {
@@ -67,7 +78,7 @@ export function AdminLive() {
       list.push({ key: t.id, kind: "team", color: t.color, lat: t.lat, lng: t.lng, label: t.name });
     }
     return list;
-  }, [zones, live]);
+  }, [zones, live, tagOf]);
 
   const stale = state.status === "running"
     ? (live?.grannies ?? []).filter((g) => g.caught_at_s == null && (g.age_s == null || g.age_s > STALE_S))
@@ -100,6 +111,7 @@ export function AdminLive() {
             {state.status === "running" && <Button size="M" variant="secondary" icon="pause" className="flex-1" disabled={busy} onClick={() => setStatus("pause")}>Pause</Button>}
             {state.status === "paused" && <Button size="M" icon="play" className="flex-1" disabled={busy} onClick={() => setStatus("resume")}>Fortsett</Button>}
             {(state.status === "running" || state.status === "paused") && <Button size="M" variant="danger" disabled={busy} onClick={() => setStatus("end")}>Avslutt</Button>}
+            {state.status === "ended" && <Button size="M" icon="play" block disabled={busy} onClick={restart}>Start nytt spill</Button>}
           </div>
           {error && <p className="mt-2 type-body-s text-text-danger">{error}</p>}
         </section>
@@ -116,6 +128,7 @@ export function AdminLive() {
           </section>
         )}
 
+        {state.status === "running" && <AdminReveal live={live} />}
         <AdminTools live={live} />
         <AdminEventLog />
 
@@ -126,7 +139,10 @@ export function AdminLive() {
           <ul className="flex flex-col gap-1">
             {(live?.grannies ?? []).map((g) => (
               <li key={g.id} className="flex items-center gap-2 rounded-md px-2 py-1 type-body-s">
-                <span className="flex-1 type-label-s">{g.name}{g.is_romling ? " (Rømling)" : ""}</span>
+                <span className="flex-1 type-label-s">
+                  {g.name}{" "}
+                  <span className="font-normal text-text-secondary">{g.is_romling ? "(Rømling)" : tagText(tagOf(g.id))}</span>
+                </span>
                 {g.caught_at_s != null ? <Badge tone="danger">Fanget</Badge>
                   : !g.telegram_linked ? <Badge tone="warning">Ikke koblet</Badge>
                   : <span className={`type-timer-s ${g.age_s == null || g.age_s > STALE_S ? "text-text-warning" : "text-text-tertiary"}`}>{ageText(g.age_s)}</span>}
