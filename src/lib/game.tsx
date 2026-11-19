@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, type ReactNode } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useGameState } from "./hooks";
+import { codeInUrl, storedCode, useMyCode } from "./joinCode";
 import { EventsProvider } from "./events";
 import { refreshPush } from "./push";
 import type { GameState, Role } from "./types";
@@ -17,16 +18,39 @@ export function useGame() {
 /** Laster spilltilstand og sender spilleren til riktig side for rollen. Uten `role` slipper alle roller inn. */
 export function GameProvider({ role, children }: { role?: Role; children: ReactNode }) {
   const game = useGameState();
+  const location = useLocation();
   useEffect(() => { refreshPush(); }, []);
   if (!game.loaded) return <div className="grid h-dvh place-items-center type-body-m text-text-secondary">Laster …</div>;
-  if (!game.state) return <Navigate to="/" replace />;
-  if (role && game.state.role !== role) return <Navigate to={homeFor(game.state.role)} replace />;
+  // Ikke innlogget: gå til innloggingen, og ta med koden fra adressen (?kode=…).
+  if (!game.state) return <Navigate to={{ pathname: "/", search: location.search }} replace />;
+  // Adressen har en annen kode enn den telefonen er logget inn med: bytt til den.
+  const urlCode = codeInUrl(location.search);
+  const mine = storedCode();
+  if (urlCode && mine && urlCode !== mine) {
+    return <Navigate to={{ pathname: "/", search: `?kode=${encodeURIComponent(urlCode)}` }} replace />;
+  }
+  if (role && game.state.role !== role) return <Navigate to={{ pathname: homeFor(game.state.role), search: location.search }} replace />;
   return (
     <GameContext.Provider value={{ ...game, state: game.state }}>
+      <KeepCodeInUrl />
       {/* Rollen er med i nøkkelen, så en telefon som bytter rolle ikke deler «sett»-merket. */}
       <EventsProvider storageKey={`${game.state.game_id}.${game.state.role}`} onEvent={() => game.refresh()}>{children}</EventsProvider>
     </GameContext.Provider>
   );
+}
+
+/** Legger koden tilbake i adressen etter hver navigering, så «Åpne i nettleser» alltid får den med. */
+function KeepCodeInUrl() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const code = useMyCode();
+  useEffect(() => {
+    if (!code || codeInUrl(location.search)) return;
+    const params = new URLSearchParams(location.search);
+    params.set("kode", code);
+    navigate({ pathname: location.pathname, search: `?${params}`, hash: location.hash }, { replace: true, state: location.state });
+  }, [code, location, navigate]);
+  return null;
 }
 
 export function homeFor(role: Role) {

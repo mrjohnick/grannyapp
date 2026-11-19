@@ -8,6 +8,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "./supabase";
 import { useInterval } from "./hooks";
 import { formatGameTime } from "./gameClock";
+import { loginLink, useMyCode } from "./joinCode";
 import type { GameEvent } from "./types";
 import { Icon, type IconName } from "../components/Icon";
 import { TelegramBanner } from "../components/TelegramAlerts";
@@ -225,6 +226,16 @@ function NotificationPage({ history, newAfter, onClose, onLogout }: {
   history: GameEvent[]; newAfter: number; onClose: () => void; onLogout: () => void;
 }) {
   const list = [...history].reverse();
+  const code = useMyCode();
+  const [copied, setCopied] = useState(false);
+  async function copyLink() {
+    if (!code) return;
+    try {
+      await navigator.clipboard.writeText(loginLink(code));
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    } catch { /* Uten utklippstavle: lenken står i feltet og kan markeres. */ }
+  }
   return (
     <div role="dialog" aria-modal="true" aria-label="Varsler" className="fixed inset-0 z-40 flex flex-col bg-bg-app">
       <header className="flex items-center gap-3 border-b-2 border-border-strong bg-bg-surface px-4 py-3 pt-[max(12px,env(safe-area-inset-top))]">
@@ -265,7 +276,23 @@ function NotificationPage({ history, newAfter, onClose, onLogout }: {
             })}
           </ol>
         )}
-        <div className="mx-auto mt-8 flex max-w-xl flex-col items-center gap-2 border-t border-border-default pt-4">
+        {code && (
+          <div className="mx-auto mt-8 flex max-w-xl flex-col gap-2 rounded-lg border border-border-default bg-bg-surface p-3">
+            <p className="type-label-m">Din innloggingslenke</p>
+            <p className="type-body-s text-text-secondary">
+              Åpnet appen inne i Telegram? Kopier lenken og lim den inn i Safari eller Chrome. Der får du varsler og kan legge appen på Hjem-skjermen.
+            </p>
+            <input readOnly value={loginLink(code)} onFocus={(e) => e.currentTarget.select()} aria-label="Innloggingslenke"
+              className="h-10 w-full rounded-sm border border-border-strong bg-bg-app px-2 type-body-s" />
+            <div className="flex items-center gap-3">
+              <button type="button" onClick={copyLink} className="rounded-full border-2 border-border-strong bg-bg-surface px-4 py-2 type-label-m">
+                {copied ? "Kopiert!" : "Kopier lenke"}
+              </button>
+              <span className="type-body-s text-text-tertiary">Kode: <span className="type-label-s text-text-primary">{code}</span></span>
+            </div>
+          </div>
+        )}
+        <div className="mx-auto mt-4 flex max-w-xl flex-col items-center gap-2 border-t border-border-default pt-4">
           <p className="text-center type-body-s text-text-tertiary">Feil rolle eller lag? Logg ut og bruk lenken eller koden du fikk.</p>
           <button type="button" onClick={onLogout} className="rounded-full border-2 border-border-strong px-4 py-2 type-label-m text-text-danger">
             Logg ut

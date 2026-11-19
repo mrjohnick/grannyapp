@@ -99,7 +99,7 @@ select results_eq(
             ('granny_cancel_taxi'), ('granny_map'), ('granny_pending_catches'), ('granny_quests'), ('granny_request_taxi'),
             ('granny_respond_catch'), ('granny_set_avatar'), ('granny_snitch'), ('granny_status'), ('i_am_romling'),
             ('int_array_is_sorted'), ('is_admin_of'), ('join_game'), ('last_ping_s'), ('leave_game'), ('me'), ('my_event_history'), ('my_events'),
-            ('my_game_id'), ('my_granny_id'), ('my_role'), ('my_team_id'), ('my_telegram'), ('my_telegram_alerts'), ('next_ping_s'),
+            ('my_game_id'), ('my_granny_id'), ('my_join_code'), ('my_role'), ('my_team_id'), ('my_telegram'), ('my_telegram_alerts'), ('next_ping_s'),
             ('register_catch'), ('report_position'), ('save_push_subscription'), ('submit_photo'), ('submit_quest'),
             ('taxi_accept_next'), ('taxi_dropoff'), ('taxi_pickup'), ('taxi_queue'), ('taxi_release'), ('team_catches'),
             ('team_has_license'), ('team_map'), ('team_nabovakt'), ('team_quests'), ('team_romling_guess'),

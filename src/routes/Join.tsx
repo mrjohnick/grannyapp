@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState, type FormEvent } from "react"
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { homeFor } from "../lib/game";
+import { rememberCode } from "../lib/joinCode";
 import type { GameState, Role } from "../lib/types";
 import { Button } from "../components/ui";
 import { LogoLockup } from "../components/Logo";
@@ -38,6 +39,7 @@ export function Join() {
         throw new Error(error.message === "Ukjent kode" ? "Den koden finnes ikke. Sjekk lappen fra spilleder." : "Noe gikk galt. Prøv igjen.");
       }
       const role = (data as { role: Role }).role;
+      rememberCode(value);
       // Grannyer kobler seg til Telegram først, så de er med på pingene.
       navigate(role === "granny" ? "/granny/telegram" : homeFor(role), { replace: true });
     } catch (err) {
