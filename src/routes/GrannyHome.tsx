@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { useGame } from "../lib/game";
+import { formatCountdown } from "../lib/gameClock";
 import { useEventVersion } from "../lib/events";
 import { useFamilies } from "../lib/families";
 import { useDevicePosition, useInterval, useWakeLock } from "../lib/hooks";
@@ -47,7 +48,7 @@ export function GrannyHome() {
     if (st.data) setStatus(st.data as GrannyStatus);
     if (mp.data) setMap(mp.data as GrannyMap);
   }, []);
-  useInterval(load, 15_000);
+  useInterval(load, 8000);
   useEffect(() => { if (version) load(); }, [version, load]);
 
   const [panel, setPanel] = useState<Panel>(null);
@@ -89,6 +90,22 @@ export function GrannyHome() {
             {granny.caught ? <Badge tone="danger">Fanget</Badge> : <Badge tone="success">Fri</Badge>}
           </div>
           <GrannyPoints status={status} isRomling={granny.is_romling} />
+          {status?.out_of_area && !granny.caught && running && (() => {
+            // Utenfor spillområdet: nedtelling til hun blir live for alle lag.
+            const left = status.out_of_area.live_at_s - gameS;
+            return (
+              <div role="alert" className="flex w-full max-w-sm items-center gap-3 rounded-lg border-2 border-border-strong bg-bg-danger p-3 text-text-on-danger shadow-hard">
+                <Icon name="alert" size={28} />
+                <span className="flex-1">
+                  <span className="block type-label-m">Du er utenfor spillområdet!</span>
+                  <span className="block type-body-s">
+                    {left > 0 ? "Gå inn igjen før tiden er ute, ellers ser alle lag deg live." : "Alle lag ser deg live til du er inne igjen."}
+                  </span>
+                </span>
+                <span className="type-timer-l">{left > 0 ? formatCountdown(left) : "LIVE"}</span>
+              </div>
+            );
+          })()}
           {tgAge !== undefined && !granny.caught && state.status !== "ended" && (tgOk ? (
             <Link to="/granny/telegram"
               className="flex items-center gap-1 rounded-full border border-border-strong bg-bg-success-subtle px-3 py-1 type-label-s">

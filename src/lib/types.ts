@@ -209,6 +209,8 @@ export type GrannyStatus = {
     ride_ends_s: number | null;
   };
   taxis: number;
+  /** Utenfor spillområdet: spillsekundet hun blir (eller ble) live for alle lag. Null når hun er inne. */
+  out_of_area: null | { live_at_s: number };
   snitch_used: boolean;
   fotoalbum_next_s: number | null;
   fotoalbum_pending: boolean;

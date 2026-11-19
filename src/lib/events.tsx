@@ -38,9 +38,10 @@ const ICONS: Record<string, IconName> = {
   taxi_ride_started: "taxi", taxi_ride_warning: "alert", taxi_ride_over: "taxi",
   quest_new: "list", quest_pending: "list", quest_approved: "check", quest_rejected: "x",
   ability_used: "eye", ability_target: "eye", pinged: "ping",
+  out_of_area: "alert", out_live: "alert", out_back: "check",
 };
 
-const URGENT = new Set(["pinged", "taxi_warning", "taxi_timeout", "taxi_released", "taxi_ride_warning", "taxi_ride_over", "catch_registered", "snitch_target", "reveal_target", "ability_target", "taxi_request", "taxi_accepted", "quest_new", "nabovakt_seen", "blind", "license", "catch_overdue", "romling_reveal"]);
+const URGENT = new Set(["out_of_area", "out_live", "pinged", "taxi_warning", "taxi_timeout", "taxi_released", "taxi_ride_warning", "taxi_ride_over", "catch_registered", "snitch_target", "reveal_target", "ability_target", "taxi_request", "taxi_accepted", "quest_new", "nabovakt_seen", "blind", "license", "catch_overdue", "romling_reveal"]);
 const SHOW_FOR_MS = 9000;
 const MAX_HISTORY = 300;
 const PAGE_HASH = "#varsler";
