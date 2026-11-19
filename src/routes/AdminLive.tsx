@@ -14,6 +14,7 @@ import { formatClock, formatCountdown } from "../lib/gameClock";
 import { AdminCatchQueue } from "../features/catch";
 import { AdminEventLog, AdminPhotoQueue, AdminReveal, AdminTools } from "../features/admin";
 import { AdminQuestQueue, AdminQuests } from "../features/quests";
+import { AdminTaxis } from "../features/taxis";
 import { PushChip } from "../components/PushChip";
 import { AdminTelegramAlerts, TelegramChip } from "../components/TelegramAlerts";
 import type { AdminLive as AdminLiveData, MapMarker, TelegramStats } from "../lib/types";
@@ -128,6 +129,7 @@ export function AdminLive() {
         <AdminCatchQueue />
         <AdminPhotoQueue teams={live?.teams ?? []} />
         <AdminQuestQueue />
+        <AdminTaxis taxiCount={live?.taxis.length ?? 0} gameS={gameS} />
 
         {stale.length > 0 && (
           <section className="rounded-lg border-2 border-border-strong bg-bg-warning-subtle p-3">

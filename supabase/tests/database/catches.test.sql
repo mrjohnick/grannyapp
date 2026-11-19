@@ -94,7 +94,7 @@ select results_eq(
             ('admin_live'), ('admin_photos'), ('admin_quest_queue'), ('admin_quests'), ('admin_reset_game'),
             ('admin_resolve_catch'), ('admin_reveal_granny'), ('admin_review_photo'), ('admin_review_quest'),
             ('admin_save_granny'), ('admin_save_quest'), ('admin_save_taxi'), ('admin_save_team'), ('admin_save_zone'),
-            ('admin_set_avatar'), ('admin_set_status'), ('admin_setup'), ('admin_telegram_alerts'), ('admin_telegram_stats'), ('admin_update_game'),
+            ('admin_set_avatar'), ('admin_set_status'), ('admin_setup'), ('admin_taxi_action'), ('admin_taxi_extra_ride'), ('admin_taxi_overview'), ('admin_telegram_alerts'), ('admin_telegram_stats'), ('admin_update_game'),
             ('can_upload_photo'), ('can_view_photo'), ('game_seconds'), ('game_state'), ('game_summary'),
             ('granny_cancel_taxi'), ('granny_map'), ('granny_pending_catches'), ('granny_request_taxi'),
             ('granny_respond_catch'), ('granny_set_avatar'), ('granny_snitch'), ('granny_status'), ('i_am_romling'),

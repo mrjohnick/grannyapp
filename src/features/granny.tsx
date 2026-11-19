@@ -33,9 +33,11 @@ const TAXI_TEXT = {
   picked_up: "Du sitter i taxien.",
 } as const;
 
-export function TaxiSheet({ status, coords, onClose, onDone }: {
+export function TaxiSheet({ status, coords, taxisOnline, onClose, onDone }: {
   status: GrannyStatus;
   coords: Coords | null;
+  /** Taxier som har sendt posisjon de siste 5 minuttene (fra granny_map). */
+  taxisOnline: number;
   onClose: () => void;
   onDone: () => void;
 }) {
@@ -43,6 +45,8 @@ export function TaxiSheet({ status, coords, onClose, onDone }: {
   const [error, setError] = useState<string | null>(null);
   const req = status.taxi_request;
   const used = status.taxi_rides >= status.taxi_max_rides;
+  // taxi_rides er brukte turer minus ekstra turer fra spilleder.
+  const left = Math.max(0, status.taxi_max_rides - status.taxi_rides);
 
   async function call(fn: string, args: Record<string, unknown> = {}) {
     setBusy(true);
@@ -57,7 +61,7 @@ export function TaxiSheet({ status, coords, onClose, onDone }: {
     <Sheet onClose={onClose}>
       <h2 className="type-display-m">Taxi</h2>
       <p className="type-body-m text-text-secondary">
-        Du har {status.taxi_max_rides === 1 ? "én taxitur" : `${status.taxi_max_rides} taxiturer`} i hele spillet. Taxiene ser du på kartet.
+        Du har {left === 1 ? "én taxitur" : `${left} taxiturer`} igjen. Taxiene ser du på kartet.
         Når du blir hentet, får lagene se hentestedet, men ikke hvem du er.
       </p>
       {req ? (
@@ -73,6 +77,11 @@ export function TaxiSheet({ status, coords, onClose, onDone }: {
         <Badge tone={used ? "warning" : "success"}>{used ? "Du har brukt taxituren din" : "Taxituren er ubrukt"}</Badge>
       )}
       {status.taxis === 0 && <p className="type-body-s text-text-warning">Det er ingen taxier i spillet ennå.</p>}
+      {status.taxis > 0 && taxisOnline === 0 && (!req || req.status === "waiting") && (
+        <p className="rounded-md bg-bg-warning-subtle p-3 type-body-s">
+          Ingen taxi er på nett akkurat nå. Du kan bestille likevel og står da i kø til en sjåfør åpner appen.
+        </p>
+      )}
       {error && <p className="rounded-md bg-bg-danger-subtle p-3 type-body-s text-text-danger">{error}</p>}
       {req && req.status !== "picked_up" ? (
         <Button variant="secondary" block disabled={busy} onClick={() => confirm("Avbestille taxien?") && call("granny_cancel_taxi")}>Avbestill</Button>

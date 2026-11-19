@@ -16,6 +16,10 @@ import { Avatar } from "../components/Avatar";
 import { photoUrl } from "../features/camera";
 import type { MapMarker, TaxiQueue } from "../lib/types";
 
+function ageText(s: number) {
+  return s < 60 ? `${s} sek` : `${Math.round(s / 60)} min`;
+}
+
 export function TaxiHome() {
   const { state, gameS } = useGame();
   const { version } = useEventVersion();
@@ -98,9 +102,19 @@ export function TaxiHome() {
                         : active.lat != null ? "Hent henne · se kartet" : "Venter på posisjonen hennes"
                       : "I bilen · kjør dit hun vil"}
                   </div>
+                  {active.status === "accepted" && active.position_age_s != null && (
+                    <div className={`type-body-s ${active.position_age_s > 120 ? "text-text-danger" : "text-text-tertiary"}`}>
+                      Posisjonen er {ageText(active.position_age_s)} gammel{active.position_age_s > 120 ? " – hun kan ha flyttet seg" : ""}
+                    </div>
+                  )}
                 </div>
                 <Badge tone={active.status === "accepted" ? "warning" : "success"}>{active.status === "accepted" ? "På vei" : "I bilen"}</Badge>
               </div>
+              {active.status === "accepted" && (
+                <p className="rounded-md bg-bg-warning-subtle px-3 py-2 type-body-s">
+                  Hold appen åpen til hun er hentet. Sender den ikke posisjon på {Math.round((queue?.timeout_s ?? 300) / 60)} min, går turen til en annen taxi.
+                </p>
+              )}
               {active.status === "accepted" ? (
                 <div className="flex gap-2">
                   <Button className="flex-1" icon="check" disabled={busy || !running} onClick={() => call("taxi_pickup", pos)}>Hentet</Button>

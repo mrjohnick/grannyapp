@@ -23,6 +23,7 @@ const ZONE_KINDS: Array<[Zone["kind"], string, number]> = [
 const RULES: Array<[string, string, "min" | "s" | "m"]> = [
   ["taxi_max_rides", "Taxiturer per granny", "m"],
   ["taxi_pickup_show_s", "Hentested vises i (min)", "min"],
+  ["taxi_driver_timeout_s", "Taxi uten svar gis videre etter (min)", "min"],
   ["catch_points_bonus", "Bonus-granny, poeng", "m"],
   ["ability_live_s", "Se granny live i (sek)", "s"],
   ["blind_s", "Blind i (min)", "min"],

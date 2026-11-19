@@ -148,7 +148,7 @@ export function GrannyHome() {
         </div>
 
         {panel === "taxi" && status && (
-          <TaxiSheet status={status} coords={coords} onClose={() => setPanel(null)} onDone={load} />
+          <TaxiSheet status={status} coords={coords} taxisOnline={(map?.markers ?? []).filter((m) => m.kind === "taxi").length} onClose={() => setPanel(null)} onDone={load} />
         )}
         {selfie && (
           <CameraCapture

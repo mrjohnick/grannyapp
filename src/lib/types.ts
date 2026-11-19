@@ -286,7 +286,11 @@ export type TaxiQueue = {
     lat: number | null;
     lng: number | null;
     position_s: number | null;
+    /** Hvor gammel grannyens posisjon er, i spillsekunder. */
+    position_age_s: number | null;
   };
+  /** Turen gis videre hvis appen ikke sender posisjon så lenge. */
+  timeout_s: number;
   waiting: Array<{ id: string; granny_name: string; requested_s: number }>;
   busy: number;
 };
