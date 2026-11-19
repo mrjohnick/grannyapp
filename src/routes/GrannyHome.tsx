@@ -89,15 +89,26 @@ export function GrannyHome() {
             {granny.caught ? <Badge tone="danger">Fanget</Badge> : <Badge tone="success">Fri</Badge>}
           </div>
           <GrannyPoints status={status} isRomling={granny.is_romling} />
-          {tgAge !== undefined && !granny.caught && state.status !== "ended" && (
-            <Link
-              to="/granny/telegram"
-              className={`flex items-center gap-1 rounded-full border border-border-strong px-3 py-1 type-label-s ${tgOk ? "bg-bg-success-subtle" : "bg-bg-warning"}`}
-            >
-              <Icon name="send" size={16} />
-              {tgOk ? `Telegram live · ${tgAge} s` : "Telegram: ingen posisjon – trykk her"}
+          {tgAge !== undefined && !granny.caught && state.status !== "ended" && (tgOk ? (
+            <Link to="/granny/telegram"
+              className="flex items-center gap-1 rounded-full border border-border-strong bg-bg-success-subtle px-3 py-1 type-label-s">
+              <Icon name="send" size={16} /> Telegram live · {tgAge} s
             </Link>
-          )}
+          ) : (
+            // Uten live-posisjon fra Telegram er hun ikke med på pingene. Si tydelig fra.
+            <Link to="/granny/telegram"
+              className="flex w-full max-w-sm items-center gap-3 rounded-lg border-2 border-border-strong bg-bg-warning p-3 shadow-hard">
+              <Icon name="send" size={24} />
+              <span className="flex-1">
+                <span className="block type-label-m">
+                  {tgAge === null ? "Del posisjonen din i Telegram" : "Telegram sender ikke posisjonen din"}
+                </span>
+                <span className="block type-body-s">
+                  {tgAge === null ? "Uten den er du ikke med på pingene. Trykk her." : `Sist for ${Math.round(tgAge / 60)} min siden. Del live-posisjon på nytt.`}
+                </span>
+              </span>
+            </Link>
+          ))}
           <PushChip />
           {!granny.avatar_path && state.status !== "ended" && (
             <button type="button" onClick={() => setSelfie(true)}

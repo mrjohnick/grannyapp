@@ -66,11 +66,27 @@ export function TelegramLink() {
         Del i chatten med boten, ikke i lag-gruppa. Ikke sveip bort Telegram – da stopper delingen.
       </div>
 
+      {status && !status.linked && (
+        // Har telefonen chattet med boten før, sender Telegram ikke alltid koblingen av seg selv.
+        <p className="rounded-md bg-bg-sunken p-3 type-body-s text-text-secondary">
+          Svarer ikke boten etter at du åpnet den? Send denne meldingen i chatten med boten:{" "}
+          <button type="button" className="type-label-s text-text-brand underline"
+            onClick={() => navigator.clipboard?.writeText(`/start ${status.link_token}`)}>
+            /start {status.link_token}
+          </button>{" "}(trykk for å kopiere)
+        </p>
+      )}
+
       <div className="flex-1" />
       <a href={url} target="_blank" rel="noreferrer" className="contents">
         <Button icon="send" block disabled={!url}>Åpne Telegram</Button>
       </a>
       <Button variant="secondary" block disabled={!receiving} onClick={() => navigate("/granny")}>Videre</Button>
+      {!receiving && (
+        <button type="button" className="type-label-s text-text-tertiary underline" onClick={() => navigate("/granny")}>
+          Hopp over for nå (du er ikke med på pingene før du deler)
+        </button>
+      )}
     </div>
   );
 }

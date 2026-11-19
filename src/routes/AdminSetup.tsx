@@ -387,7 +387,7 @@ function ZoneEditor({ data, call }: { data: SetupData; call: Call }) {
   return (
     <main className="relative flex min-h-[70vh] flex-1 flex-col">
       <div className="relative flex-1">
-        <GameMap zones={zones} markers={markers} onClick={onMapClick} />
+        <GameMap zones={zones} markers={markers} locate onClick={onMapClick} />
         {(draft || area) && (
           <div className="absolute inset-x-3 top-3 rounded-md bg-bg-inverse px-3 py-2 type-label-s text-text-inverse">
             {area ? `Trykk i kartet for hvert hjørne (${area.length} så langt).` : "Trykk i kartet der sonen skal være."}

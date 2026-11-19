@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import * as maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { mapStyle } from "./style";
@@ -7,6 +7,26 @@ import type { MapMarker, MarkerKind, Zone } from "../lib/types";
 
 // Grimstad sentrum
 const CENTER: [number, number] = [8.5934, 58.3405];
+
+// Spilleders sist kjente posisjon, så kartet ikke blinker innom Grimstad før GPS svarer.
+const LAST_CENTER_KEY = "granny:spilleder-senter";
+
+function savedCenter(): [number, number] | null {
+  try {
+    const v: unknown = JSON.parse(localStorage.getItem(LAST_CENTER_KEY) ?? "null");
+    return Array.isArray(v) && v.length === 2 && v.every((n) => typeof n === "number" && Number.isFinite(n)) ? [v[0], v[1]] : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveCenter(c: [number, number]) {
+  try {
+    localStorage.setItem(LAST_CENTER_KEY, JSON.stringify(c));
+  } catch {
+    /* privat modus o.l. – ikke kritisk */
+  }
+}
 
 const MARKER_STYLE: Record<MarkerKind, { bg: string; icon?: IconName; iconColor: string; halo?: string }> = {
   granny:      { bg: "var(--color-marker-granny)", icon: "granny", iconColor: "#fff" },
@@ -102,12 +122,19 @@ export function GameMap({
   zones = [],
   markers = [],
   follow,
+  locate = false,
   onClick,
 }: {
   zones?: Zone[];
   markers?: MapMarker[];
   /** Sentrer kartet her første gang den er kjent. */
   follow?: { lat: number; lng: number } | null;
+  /**
+   * Spilleder: start kartet på enhetens posisjon i stedet for Grimstad.
+   * Posisjonen sendes ikke til serveren. Uten tilgang faller kartet tilbake
+   * til markørene, og deretter til Grimstad.
+   */
+  locate?: boolean;
   /** Spilleders oppsett: trykk i kartet for å plassere soner. */
   onClick?: (at: { lat: number; lng: number }) => void;
 }) {
@@ -117,13 +144,15 @@ export function GameMap({
   const centered = useRef(false);
   const clickRef = useRef(onClick);
   clickRef.current = onClick;
+  // Venter på GPS før kartet eventuelt zoomer til markørene.
+  const [locating, setLocating] = useState(locate && "geolocation" in navigator);
 
   useEffect(() => {
     if (!container.current) return;
     const m = new maplibregl.Map({
       container: container.current,
       style: mapStyle(),
-      center: CENTER,
+      center: (locate && savedCenter()) || CENTER,
       zoom: 14.5,
       attributionControl: { compact: true },
     });
@@ -173,10 +202,34 @@ export function GameMap({
     }
   }, [markers]);
 
+  // Spilleder: hent enhetens posisjon én gang og start kartet der.
+  useEffect(() => {
+    if (!locate || !("geolocation" in navigator)) return;
+    let active = true;
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        if (!active) return;
+        const c: [number, number] = [pos.coords.longitude, pos.coords.latitude];
+        saveCenter(c);
+        const m = map.current;
+        if (m && !centered.current) {
+          centered.current = true;
+          m.easeTo({ center: c, zoom: 15 });
+        }
+        setLocating(false);
+      },
+      () => active && setLocating(false),
+      { enableHighAccuracy: false, maximumAge: 60_000, timeout: 10_000 },
+    );
+    return () => {
+      active = false;
+    };
+  }, [locate]);
+
   // Første gang: sentrer på spilleren, eller vis alle markørene.
   useEffect(() => {
     const m = map.current;
-    if (!m || centered.current) return;
+    if (!m || centered.current || locating) return;
     if (follow) {
       centered.current = true;
       m.easeTo({ center: [follow.lng, follow.lat], zoom: 15.5 });
@@ -186,7 +239,7 @@ export function GameMap({
       for (const mk of markers) bounds.extend([mk.lng, mk.lat]);
       m.fitBounds(bounds, { padding: { top: 120, bottom: 160, left: 50, right: 50 }, maxZoom: 16, duration: 0 });
     }
-  }, [follow, markers]);
+  }, [follow, markers, locating]);
 
   // Inline-stil: maplibre-gl.css setter position: relative på .maplibregl-map,
   // og den vinner over Tailwind-klasser (som ligger i et cascade layer).

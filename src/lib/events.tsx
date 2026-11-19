@@ -151,6 +151,17 @@ export function EventsProvider({ storageKey, onEvent, children }: { storageKey: 
     navigate({ pathname: location.pathname, search: location.search, hash: PAGE_HASH }, { state: { fromBell: true } });
   }, [navigate, location.pathname, location.search, seenId]);
 
+  // Logg ut: fjern telefonen fra spillet og start helt på nytt på innloggingssiden.
+  const logout = useCallback(async () => {
+    if (!confirm("Logge ut av spillet? Du trenger koden eller lenken fra spilleder for å komme inn igjen.")) return;
+    await supabase.rpc("leave_game");
+    await supabase.auth.signOut();
+    try {
+      Object.keys(localStorage).filter((k) => k.startsWith("granny.")).forEach((k) => localStorage.removeItem(k));
+    } catch { /* privat modus */ }
+    window.location.replace("/");
+  }, []);
+
   const closePage = useCallback(() => {
     if ((location.state as { fromBell?: boolean } | null)?.fromBell) navigate(-1);
     else navigate({ pathname: location.pathname, search: location.search }, { replace: true });
@@ -159,7 +170,7 @@ export function EventsProvider({ storageKey, onEvent, children }: { storageKey: 
   return (
     <EventsContext.Provider value={{ version, last, history, unread, openPage }}>
       {children}
-      {pageOpen && <NotificationPage history={history} newAfter={newAfter} onClose={closePage} />}
+      {pageOpen && <NotificationPage history={history} newAfter={newAfter} onClose={closePage} onLogout={logout} />}
       {toasts.length > 0 && (
         <div className="pointer-events-none fixed inset-x-0 top-0 z-50 flex flex-col items-center gap-2 px-3 pt-[max(12px,env(safe-area-inset-top))]">
           {toasts.map((t) => (
@@ -209,7 +220,9 @@ export function NotificationBell({ className = "" }: { className?: string }) {
 
 const clock = new Intl.DateTimeFormat("nb-NO", { hour: "2-digit", minute: "2-digit" });
 
-function NotificationPage({ history, newAfter, onClose }: { history: GameEvent[]; newAfter: number; onClose: () => void }) {
+function NotificationPage({ history, newAfter, onClose, onLogout }: {
+  history: GameEvent[]; newAfter: number; onClose: () => void; onLogout: () => void;
+}) {
   const list = [...history].reverse();
   return (
     <div role="dialog" aria-modal="true" aria-label="Varsler" className="fixed inset-0 z-40 flex flex-col bg-bg-app">
@@ -251,6 +264,12 @@ function NotificationPage({ history, newAfter, onClose }: { history: GameEvent[]
             })}
           </ol>
         )}
+        <div className="mx-auto mt-8 flex max-w-xl flex-col items-center gap-2 border-t border-border-default pt-4">
+          <p className="text-center type-body-s text-text-tertiary">Feil rolle eller lag? Logg ut og bruk lenken eller koden du fikk.</p>
+          <button type="button" onClick={onLogout} className="rounded-full border-2 border-border-strong px-4 py-2 type-label-m text-text-danger">
+            Logg ut
+          </button>
+        </div>
       </main>
     </div>
   );

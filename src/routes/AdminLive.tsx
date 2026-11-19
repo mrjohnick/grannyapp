@@ -196,7 +196,7 @@ export function AdminLive() {
         </section>
       </aside>
       <main className="relative min-h-[50vh] flex-1">
-        <GameMap zones={zones} markers={markers} />
+        <GameMap zones={zones} markers={markers} locate />
       </main>
     </div>
   );

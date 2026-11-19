@@ -1,5 +1,5 @@
 // F1 · Bli med
-import { useEffect, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { homeFor } from "../lib/game";
@@ -9,41 +9,60 @@ import { LogoLockup } from "../components/Logo";
 
 export function Join() {
   const navigate = useNavigate();
-  const [code, setCode] = useState(() => new URLSearchParams(location.search).get("kode") ?? "");
+  const linkCode = useRef(new URLSearchParams(location.search).get("kode")?.trim() ?? "");
+  const [code, setCode] = useState(linkCode.current.toUpperCase());
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Allerede med i et spill? Gå rett videre.
-  useEffect(() => {
-    supabase.auth.getSession().then(async ({ data }) => {
-      if (!data.session) return;
-      const { data: state } = await supabase.rpc("game_state");
-      if (state) navigate(homeFor((state as GameState).role), { replace: true });
-    });
-  }, [navigate]);
-
-  async function submit(e: FormEvent) {
-    e.preventDefault();
-    if (!code.trim()) return;
+  // Logg inn med en kode. Er telefonen allerede med i spillet, byttes rollen
+  // (join_game oppdaterer spilleren).
+  const join = useCallback(async (value: string) => {
     setBusy(true);
     setError(null);
     try {
-      const { data: s } = await supabase.auth.getSession();
-      if (!s.session) {
+      const signIn = async () => {
         const { error } = await supabase.auth.signInAnonymously();
         if (error) throw new Error("Kunne ikke logge inn. Sjekk nettet og prøv igjen.");
+      };
+      const { data: s } = await supabase.auth.getSession();
+      if (!s.session) await signIn();
+      let { data, error } = await supabase.rpc("join_game", { p_code: value });
+      // Gammel innlogging som ikke finnes lenger (brukeren er slettet, eller
+      // økten er utløpt): logg inn på nytt og prøv én gang til.
+      if (error && (error.code === "23503" || error.code === "PGRST301" || /JWT/i.test(error.message))) {
+        await supabase.auth.signOut();
+        await signIn();
+        ({ data, error } = await supabase.rpc("join_game", { p_code: value }));
       }
-      const { data, error } = await supabase.rpc("join_game", { p_code: code });
       if (error) {
         throw new Error(error.message === "Ukjent kode" ? "Den koden finnes ikke. Sjekk lappen fra spilleder." : "Noe gikk galt. Prøv igjen.");
       }
       const role = (data as { role: Role }).role;
+      // Grannyer kobler seg til Telegram først, så de er med på pingene.
       navigate(role === "granny" ? "/granny/telegram" : homeFor(role), { replace: true });
     } catch (err) {
       setError((err as Error).message);
     } finally {
       setBusy(false);
     }
+  }, [navigate]);
+
+  useEffect(() => {
+    // En lenke med ?kode= logger inn med den koden med en gang, også om
+    // telefonen allerede er logget inn som noe annet.
+    if (linkCode.current) { join(linkCode.current); return; }
+    // Uten kode: allerede med i et spill? Gå rett videre.
+    supabase.auth.getSession().then(async ({ data }) => {
+      if (!data.session) return;
+      const { data: state } = await supabase.rpc("game_state");
+      if (state) navigate(homeFor((state as GameState).role), { replace: true });
+    });
+  }, [navigate, join]);
+
+  async function submit(e: FormEvent) {
+    e.preventDefault();
+    if (!code.trim()) return;
+    await join(code);
   }
 
   return (
