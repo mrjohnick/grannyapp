@@ -1,7 +1,7 @@
 // Formen på svarene fra RPC-ene i supabase/migrations. Holdes for hånd til
 // `pnpm db:types` tas i bruk for tabellene.
 
-export type Role = "granny" | "team" | "admin";
+export type Role = "granny" | "team" | "admin" | "taxi";
 export type TeamColor = "rod" | "oransje" | "gul" | "lime" | "gronn" | "turkis" | "bla" | "marine" | "rosa" | "brun";
 
 export type GameState = {
@@ -32,12 +32,14 @@ export type GameState = {
     is_romling: boolean;
     caught: boolean;
     caught_at_s: number | null;
+    avatar_path: string | null;
   };
+  taxi: null | { id: string; name: string };
 };
 
 export type MarkerKind =
   | "granny" | "own_granny" | "live" | "romling" | "anonym"
-  | "nabovakt" | "kaffekroken" | "bingo" | "nattevakt" | "postkort" | "meg" | "team";
+  | "nabovakt" | "kaffekroken" | "bingo" | "nattevakt" | "postkort" | "meg" | "team" | "taxi";
 
 export type MapMarker = {
   key: string;
@@ -46,6 +48,8 @@ export type MapMarker = {
   lng: number;
   label?: string | null;
   color?: string;
+  /** Profilbilde (signert lenke) som vises i markøren i stedet for ikonet. */
+  avatarUrl?: string | null;
 };
 
 export type TeamMap = {
@@ -53,10 +57,11 @@ export type TeamMap = {
   ping_s: number | null;
   blind_until_s: number | null;
   markers: Array<{
-    kind: "granny" | "own_granny" | "live" | "romling" | "anonym";
+    kind: "granny" | "own_granny" | "live" | "romling" | "anonym" | "taxi";
     id: string | null;
     name: string | null;
-    live_reason: "sladret" | "spilleder" | "utenfor" | "bingo" | null;
+    live_reason: "sladret" | "spilleder" | "evne" | "utenfor" | "bingo" | null;
+    busy?: boolean;
     lat: number;
     lng: number;
     accuracy_m: number | null;
@@ -113,6 +118,16 @@ export type AdminLive = {
     lng: number | null;
     age_s: number | null;
   }>;
+  taxis: Array<{
+    id: string;
+    name: string;
+    phones: number;
+    lat: number | null;
+    lng: number | null;
+    age_s: number | null;
+    ride: null | { status: "accepted" | "picked_up"; granny_name: string };
+  }>;
+  taxi_waiting: string[];
 };
 
 export type TeamCatch = {
@@ -144,6 +159,7 @@ export type AdminCatch = {
   team_name: string;
   team_color: TeamColor;
   registered_s: number;
+  selfie_path: string | null;
   age_s: number;
   overdue: boolean;
   competing: number;
@@ -166,9 +182,9 @@ export type GrannyStatus = {
   game_s: number;
   points: number;
   taxi_rides: number;
-  next_taxi_s: number | null;
-  honnor_max_rides: number;
-  honnor_min_free_s: number;
+  taxi_max_rides: number;
+  taxi_request: null | { status: "waiting" | "accepted" | "picked_up"; taxi_name: string | null; queue_position: number | null };
+  taxis: number;
   snitch_used: boolean;
   fotoalbum_next_s: number | null;
   fotoalbum_pending: boolean;
@@ -234,8 +250,9 @@ export type SetupData = {
     ping_schedule_s: number[];
     rules: Record<string, number>;
   };
-  grannies: Array<{ id: string; name: string; is_romling: boolean; code: string | null; telegram_linked: boolean; phones: number }>;
+  grannies: Array<{ id: string; name: string; is_romling: boolean; avatar_path: string | null; code: string | null; telegram_linked: boolean; phones: number }>;
   teams: Array<{ id: string; name: string; color: TeamColor; assigned_granny_id: string | null; code: string | null; phones: number }>;
+  taxis: Array<{ id: string; name: string; code: string | null; phones: number }>;
   admin_codes: string[];
   zones: Array<Zone & { opens_at_s: number | null; closes_at_s: number | null; mission: string | null }>;
 };
@@ -253,4 +270,61 @@ export type Summary = {
   catches: Array<{ order: number | null; granny: string; is_romling: boolean; team: string; at_s: number }>;
   snitches: Array<{ snitch: string; target: string; at_s: number; bonus: boolean }>;
   album: Array<{ photographer: string; team: string; at_s: number }>;
+};
+
+export type TaxiQueue = {
+  game_s: number;
+  taxi: { id: string; name: string } | null;
+  active: null | {
+    id: string;
+    status: "accepted" | "picked_up";
+    granny_name: string;
+    granny_avatar: string | null;
+    requested_s: number;
+    accepted_s: number | null;
+    picked_s: number | null;
+    lat: number | null;
+    lng: number | null;
+    position_s: number | null;
+  };
+  waiting: Array<{ id: string; granny_name: string; requested_s: number }>;
+  busy: number;
+};
+
+export type Quest = {
+  id: string;
+  title: string;
+  description: string | null;
+  reward_points: number;
+  reward_abilities: number;
+  closed: boolean;
+};
+
+export type TeamQuests = {
+  abilities_left: number;
+  ability_live_s: number;
+  quests: Array<Quest & { status: "pending" | "approved" | "rejected" | null; note: string | null }>;
+};
+
+export type AdminQuest = Quest & {
+  team_id: string | null;
+  team_name: string | null;
+  pending: number;
+  approved_teams: string[];
+};
+
+export type QuestSubmission = {
+  id: string;
+  quest_id: string;
+  quest_title: string;
+  quest_description: string | null;
+  reward_points: number;
+  reward_abilities: number;
+  team_id: string;
+  team_name: string;
+  team_color: TeamColor;
+  storage_path: string;
+  media: "image" | "video";
+  submitted_s: number;
+  submitted_at: string;
 };

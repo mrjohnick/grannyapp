@@ -12,9 +12,11 @@ import { GameMap, zoneMarkers } from "../map/GameMap";
 import { Badge, Button, Screen, TopBar } from "../components/ui";
 import { Icon } from "../components/Icon";
 import { PushChip } from "../components/PushChip";
+import { Avatar } from "../components/Avatar";
 import type { GrannyMap, GrannyStatus, MapMarker } from "../lib/types";
 import { CaughtCard, GrannyCatchDialog } from "../features/catch";
 import { GrannyPoints, PhotoSheet, SnitchSheet, TaxiSheet } from "../features/granny";
+import { CameraCapture, uploadPhoto } from "../features/camera";
 
 type Panel = "taxi" | "snitch" | "photo" | null;
 
@@ -22,7 +24,10 @@ export function GrannyHome() {
   const { state, gameS, refresh } = useGame();
   const { version } = useEventVersion();
   const granny = state.granny!;
-  const tag = useFamilies().tagOf(granny.id);
+  const [avatarKey, setAvatarKey] = useState(0);
+  const { tagOf, avatarOf } = useFamilies(avatarKey);
+  const tag = tagOf(granny.id);
+  const [selfie, setSelfie] = useState(false);
   const zones = useZones();
   const { coords, error: gpsError } = useDevicePosition(!granny.caught && state.status !== "ended");
   useWakeLock(state.status === "running");
@@ -56,7 +61,10 @@ export function GrannyHome() {
 
   const markers = useMemo<MapMarker[]>(() => {
     const list = zoneMarkers(zones);
-    for (const m of map?.markers ?? []) list.push({ key: `anonym-${m.at_s}`, kind: "anonym", lat: m.lat, lng: m.lng, label: "Noen sladret" });
+    for (const m of map?.markers ?? []) {
+      if (m.kind === "taxi") list.push({ key: `taxi-${m.id}`, kind: "taxi", lat: m.lat, lng: m.lng, label: m.busy ? `${m.name} · opptatt` : m.name });
+      else list.push({ key: `anonym-${m.at_s}`, kind: "anonym", lat: m.lat, lng: m.lng, label: "Noen sladret" });
+    }
     if (coords) list.push({ key: "meg", kind: "meg", lat: coords.lat, lng: coords.lng, label: "Deg" });
     return list;
   }, [zones, map, coords]);
@@ -73,9 +81,7 @@ export function GrannyHome() {
 
         <div className="absolute top-4 left-4 right-4 flex flex-col items-start gap-2">
           <div className="flex items-center gap-3 rounded-full border-2 border-border-strong bg-bg-surface py-2 pr-4 pl-2 shadow-md">
-            <span className="grid size-10 place-items-center rounded-full border-2 border-border-brand bg-bg-brand-subtle type-heading-l text-text-brand">
-              {granny.name[0]}
-            </span>
+            <Avatar name={granny.name} url={avatarOf(granny.id)} />
             <div>
               <div className="type-label-m">{granny.name}</div>
               <div className="type-body-s text-text-secondary">
@@ -98,6 +104,12 @@ export function GrannyHome() {
             </Link>
           )}
           <PushChip />
+          {!granny.avatar_path && state.status !== "ended" && (
+            <button type="button" onClick={() => setSelfie(true)}
+              className="flex items-center gap-1 rounded-full border border-border-strong bg-bg-warning px-3 py-1 type-label-s">
+              <Icon name="camera" size={16} /> Ta profilbilde, så lagene ser hvem du er
+            </button>
+          )}
           {granny.is_romling && status && !status.license_given && !granny.caught && (
             <div className="rounded-md bg-bg-info-subtle px-3 py-2 type-body-s">Du kan være innendørs til et lag har knekt koden.</div>
           )}
@@ -136,9 +148,23 @@ export function GrannyHome() {
         </div>
 
         {panel === "taxi" && status && (
-          <TaxiSheet status={status} gameS={gameS} coords={coords} isRomling={granny.is_romling}
-            onClose={() => setPanel(null)}
-            onDone={(s) => { setStatus(s); setPanel(null); setNotice("Taxituren er registrert."); }} />
+          <TaxiSheet status={status} coords={coords} onClose={() => setPanel(null)} onDone={load} />
+        )}
+        {selfie && (
+          <CameraCapture
+            title="Profilbilde"
+            hint="Ansiktet ditt vises på kartet ved siden av navnet."
+            selfie
+            onClose={() => setSelfie(false)}
+            onSend={async (blob) => {
+              const path = await uploadPhoto(state.game_id, blob, "avatar-");
+              const { error } = await supabase.rpc("granny_set_avatar", { p_path: path });
+              if (error) throw new Error("Profilbildet ble ikke lagret. Prøv igjen.");
+              setSelfie(false);
+              setAvatarKey((k) => k + 1);
+              refresh();
+            }}
+          />
         )}
         {panel === "snitch" && status && (
           <SnitchSheet status={status} coords={coords} inKaffekroken={inKaffekroken} distanceText={kaffeDistance}

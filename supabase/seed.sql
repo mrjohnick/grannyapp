@@ -2,8 +2,11 @@
 -- Ekte steder (Bingo, postkort) og Rømlingens navn legges inn av spilleder i
 -- databasen før spillet, aldri i dette offentlige repoet.
 
-insert into public.games (id, name) values
-  ('00000000-0000-0000-0000-000000000001', 'Testjakt');
+-- Testene er skrevet for et spill på 2:30, så testspillet beholder de gamle tidene.
+-- Nye spill får standarden på 1:30.
+insert into public.games (id, name, duration_s, romling_reveal_s, ping_schedule_s) values
+  ('00000000-0000-0000-0000-000000000001', 'Testjakt', 9000, 2700,
+   '{900,1800,2700,3600,4500,5100,5700,6300,6900,7200,7500,7800,8100,8400,8700,9000}');
 
 insert into public.grannies (id, game_id, name, is_romling) values
   ('00000000-0000-0000-0000-0000000000a1', '00000000-0000-0000-0000-000000000001', 'Astrid', false),
@@ -25,6 +28,11 @@ insert into public.join_codes (code, game_id, role, team_id, granny_id) values
   ('TEST-GERD',    '00000000-0000-0000-0000-000000000001', 'granny', null, '00000000-0000-0000-0000-0000000000a2'),
   ('TEST-SOLVEIG', '00000000-0000-0000-0000-000000000001', 'granny', null, '00000000-0000-0000-0000-0000000000a3'),
   ('TEST-ROMLING', '00000000-0000-0000-0000-000000000001', 'granny', null, '00000000-0000-0000-0000-0000000000a9');
+
+insert into public.taxis (id, game_id, name) values
+  ('00000000-0000-0000-0000-0000000000c1', '00000000-0000-0000-0000-000000000001', 'Taxi Test');
+insert into public.join_codes (code, game_id, role, taxi_id) values
+  ('TEST-TAXI', '00000000-0000-0000-0000-000000000001', 'taxi', '00000000-0000-0000-0000-0000000000c1');
 
 insert into public.granny_telegram (granny_id, link_token)
 select id, 'test-' || lower(name) from public.grannies

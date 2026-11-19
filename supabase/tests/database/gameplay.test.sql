@@ -3,7 +3,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 set search_path = public, extensions;
-select plan(56);
+select plan(65);
 
 insert into auth.users (id, aud, role) values
   ('33333333-0000-0000-0000-000000000001', 'authenticated', 'authenticated'),  -- Lag Blå
@@ -12,7 +12,8 @@ insert into auth.users (id, aud, role) values
   ('33333333-0000-0000-0000-000000000004', 'authenticated', 'authenticated'),  -- Gerd
   ('33333333-0000-0000-0000-000000000005', 'authenticated', 'authenticated'),  -- Spilleder
   ('33333333-0000-0000-0000-000000000006', 'authenticated', 'authenticated'),  -- Rømlingen
-  ('33333333-0000-0000-0000-000000000007', 'authenticated', 'authenticated');  -- Solveig
+  ('33333333-0000-0000-0000-000000000007', 'authenticated', 'authenticated'),  -- Solveig
+  ('33333333-0000-0000-0000-000000000008', 'authenticated', 'authenticated');  -- Taxisjåfør
 
 create function pg_temp.as_user(uid uuid) returns void language sql as $$
   select set_config('request.jwt.claims', json_build_object('sub', uid, 'role', 'authenticated')::text, true),
@@ -44,6 +45,7 @@ select pg_temp.as_user('33333333-0000-0000-0000-000000000004'); select public.jo
 select pg_temp.as_user('33333333-0000-0000-0000-000000000005'); select public.join_game('TEST-ADMIN');
 select pg_temp.as_user('33333333-0000-0000-0000-000000000006'); select public.join_game('TEST-ROMLING');
 select pg_temp.as_user('33333333-0000-0000-0000-000000000007'); select public.join_game('TEST-SOLVEIG');
+select pg_temp.as_user('33333333-0000-0000-0000-000000000008'); select public.join_game('TEST-TAXI');
 
 -- Oppsett før start ------------------------------------------------------------
 select pg_temp.as_user('33333333-0000-0000-0000-000000000005');
@@ -61,13 +63,26 @@ select pg_temp.as_user('33333333-0000-0000-0000-000000000005');
 select throws_ok($$ select public.admin_save_granny(null, 'Sen') $$, 'P0001', 'Kan bare endres før spillet starter', 'kan ikke legge til grannies etter start');
 select throws_ok($$ select public.admin_update_game('{"duration_s": 100}') $$, 'P0001', 'Tidene kan bare endres før spillet starter', 'kan ikke endre tider etter start');
 
--- Taxi
+-- Taxi: Astrid bestiller, sjåføren tar turen, henter og leverer
 select pg_temp.as_user('33333333-0000-0000-0000-000000000003');
-select lives_ok($$ select public.granny_taxi() $$, 'Astrid tar taxi');
-select throws_ok($$ select public.granny_taxi() $$, 'P0001', 'Taxi er sperret', 'ny taxi er sperret i 30 min');
+select lives_ok($$ select public.granny_request_taxi() $$, 'Astrid bestiller taxi');
+select throws_ok($$ select public.granny_request_taxi() $$, 'P0001', 'Du har allerede bestilt taxi', 'kan ikke bestille to ganger');
+select pg_temp.as_user('33333333-0000-0000-0000-000000000008');
+select ok(public.my_events() @> '[{"kind": "taxi_request"}]', 'sjåføren får varsel om bestillingen');
+select is(public.taxi_queue()->'waiting'->0->>'granny_name', 'Astrid', 'Astrid står i køen');
+select lives_ok($$ select public.taxi_accept_next() $$, 'sjåføren tar turen');
+select pg_temp.as_user('33333333-0000-0000-0000-000000000003');
+select is(public.granny_status()->'taxi_request'->>'status', 'accepted', 'Astrid ser at taxien kommer');
+select pg_temp.as_user('33333333-0000-0000-0000-000000000008');
+select lives_ok($$ select public.taxi_pickup(58.3405, 8.5934, 5) $$, 'sjåføren henter Astrid');
+select lives_ok($$ select public.taxi_dropoff() $$, 'og leverer henne');
+select pg_temp.as_user('33333333-0000-0000-0000-000000000003');
 select is((public.granny_status()->>'taxi_rides')::int, 1, 'appen teller taxiturer');
+select throws_ok($$ select public.granny_request_taxi() $$, 'P0001', 'Du har brukt opp taxiturene dine', 'én taxitur per granny');
+select ok(public.granny_map()->'markers' @> '[{"kind": "taxi", "name": "Taxi Test"}]', 'grannies ser taxien på kartet');
 select pg_temp.as_user('33333333-0000-0000-0000-000000000001');
 select ok(public.my_events() @> '[{"kind": "taxi", "title": "En granny har tatt taxi."}]', 'lagene får taxivarsel');
+select ok(public.team_map()->'markers' @> '[{"kind": "taxi", "name": null}]', 'lagene ser hentestedet, uten navn');
 select pg_temp.as_user('33333333-0000-0000-0000-000000000004');
 select ok(not (public.my_events() @> '[{"kind": "taxi"}]'), 'grannies får ikke taxivarselet');
 
@@ -152,7 +167,8 @@ select pg_temp.as_user('33333333-0000-0000-0000-000000000001');
 select is((public.team_map()->>'blind_until_s')::int, 3600, 'laget er blindt i 10 min');
 select ok(not public.can_view_photo('00000000-0000-0000-0000-000000000001/album-1.jpg'), 'laget ser ikke bildet mens det er blindt');
 -- Gerd tar taxi mens Lag Blå er blinde.
-select pg_temp.as_user('33333333-0000-0000-0000-000000000004'); select public.granny_taxi();
+select pg_temp.as_user('33333333-0000-0000-0000-000000000004'); select public.granny_request_taxi();
+select pg_temp.as_user('33333333-0000-0000-0000-000000000008'); select public.taxi_accept_next(); select public.taxi_pickup(58.3405, 8.5934, 5);
 select pg_temp.as_user('33333333-0000-0000-0000-000000000001');
 select is(jsonb_array_length(jsonb_path_query_array(public.my_events(), '$[*] ? (@.kind == "taxi" && @.at_s == 3000)')), 0, 'blinde lag får ikke taxivarsel');
 select pg_temp.as_user('33333333-0000-0000-0000-000000000002');
@@ -194,8 +210,7 @@ insert into public.taxi_rides (game_id, granny_id, at_s)
 select '00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-0000000000a3', x from unnest('{1000,3000,5000}'::int[]) x;
 select pg_temp.at(9100); select public.tick_games();
 select is((select status::text from public.games where id = '00000000-0000-0000-0000-000000000001'), 'ended', 'spillet slutter av seg selv 2:30');
-select is((select array_agg(g.name order by g.name) from public.points_ledger l join public.grannies g on g.id = l.granny_id where l.reason = 'honnorrabatt'),
-  '{Astrid,Gerd}'::text[], 'honnørrabatt ved slutt: ikke med 3 taxiturer, ikke Rømlingen');
+select is((select count(*)::int from public.points_ledger where reason = 'honnorrabatt'), 0, 'ingen honnørrabatt ved slutt');
 select pg_temp.as_user('33333333-0000-0000-0000-000000000001');
 select ok(public.game_summary()->'snitches' @> '[{"snitch": "Astrid", "target": "Gerd"}]', 'oppsummeringen avslører sladrehanken');
 

@@ -13,62 +13,72 @@ const pos = (c: Coords | null) => ({ p_lat: c?.lat ?? null, p_lng: c?.lng ?? nul
 
 export function GrannyPoints({ status, isRomling }: { status: GrannyStatus | null; isRomling: boolean }) {
   if (!status) return null;
-  const left = status.honnor_max_rides - status.taxi_rides;
+  const left = Math.max(0, status.taxi_max_rides - status.taxi_rides);
   return (
     <div className="flex items-center gap-2 rounded-full border-2 border-border-strong bg-bg-surface px-3 py-1 shadow-md">
       {!isRomling && <span className="type-label-m">{status.points}p</span>}
       <span className="flex items-center gap-1 type-body-s text-text-secondary">
-        <Icon name="taxi" size={16} /> {status.taxi_rides}
-        {!isRomling && (left >= 0 ? ` · Honnør: ${left} igjen` : " · Honnør ryket")}
+        <Icon name="taxi" size={16} /> {left > 0 ? `${left} taxitur igjen` : "Taxi brukt"}
       </span>
     </div>
   );
 }
 
 // ---------------------------------------------------------------------------
-// Taxi
+// Taxi: bestill, så tar første ledige sjåfør turen
 // ---------------------------------------------------------------------------
-export function TaxiSheet({ status, gameS, coords, isRomling, onClose, onDone }: {
+const TAXI_TEXT = {
+  waiting: "Venter på en ledig sjåfør.",
+  accepted: "kommer og henter deg.",
+  picked_up: "Du sitter i taxien.",
+} as const;
+
+export function TaxiSheet({ status, coords, onClose, onDone }: {
   status: GrannyStatus;
-  gameS: number;
   coords: Coords | null;
-  isRomling: boolean;
   onClose: () => void;
-  onDone: (s: GrannyStatus) => void;
+  onDone: () => void;
 }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const wait = status.next_taxi_s != null ? status.next_taxi_s - gameS : 0;
-  const ridesAfter = status.taxi_rides + 1;
-  const losesHonnor = !isRomling && ridesAfter > status.honnor_max_rides && status.taxi_rides <= status.honnor_max_rides;
+  const req = status.taxi_request;
+  const used = status.taxi_rides >= status.taxi_max_rides;
 
-  async function register() {
+  async function call(fn: string, args: Record<string, unknown> = {}) {
     setBusy(true);
     setError(null);
-    const { data, error } = await supabase.rpc("granny_taxi", pos(coords));
+    const { error } = await supabase.rpc(fn, args);
     setBusy(false);
     if (error) return setError(friendly(error));
-    onDone(data as GrannyStatus);
+    onDone();
   }
 
   return (
     <Sheet onClose={onClose}>
-      <h2 className="type-display-m">Ta taxi</h2>
+      <h2 className="type-display-m">Taxi</h2>
       <p className="type-body-m text-text-secondary">
-        Ring sjåføren og registrer turen når du sitter i bilen. Lagene får beskjed om at en granny har tatt taxi, men ikke hvem.
+        Du har {status.taxi_max_rides === 1 ? "én taxitur" : `${status.taxi_max_rides} taxiturer`} i hele spillet. Taxiene ser du på kartet.
+        Når du blir hentet, får lagene se hentestedet, men ikke hvem du er.
       </p>
-      <div className="flex gap-2">
-        <Badge tone="neutral">{`${status.taxi_rides} ${status.taxi_rides === 1 ? "tur" : "turer"} så langt`}</Badge>
-        {!isRomling && <Badge tone={losesHonnor ? "warning" : "success"}>{`Honnørrabatt: maks ${status.honnor_max_rides}`}</Badge>}
-      </div>
-      {losesHonnor && <p className="rounded-md bg-bg-warning-subtle p-3 type-body-s">Dette er tur nr. {ridesAfter}. Da mister du Honnørrabatten (3p).</p>}
-      {wait > 0 && (
-        <p className="rounded-md bg-bg-sunken p-3 type-body-m">
-          Neste taxi om <span className="type-timer-m">{formatCountdown(wait)}</span>.
-        </p>
+      {req ? (
+        <div className="flex flex-col gap-2 rounded-md bg-bg-warning-subtle p-3">
+          <span className="type-label-l">
+            {req.status === "accepted" ? `${req.taxi_name ?? "Taxien"} ${TAXI_TEXT.accepted}` : TAXI_TEXT[req.status]}
+          </span>
+          {req.status === "waiting" && req.queue_position != null && (
+            <span className="type-body-s">Du er nr. {req.queue_position} i køen.</span>
+          )}
+        </div>
+      ) : (
+        <Badge tone={used ? "warning" : "success"}>{used ? "Du har brukt taxituren din" : "Taxituren er ubrukt"}</Badge>
       )}
+      {status.taxis === 0 && <p className="type-body-s text-text-warning">Det er ingen taxier i spillet ennå.</p>}
       {error && <p className="rounded-md bg-bg-danger-subtle p-3 type-body-s text-text-danger">{error}</p>}
-      <Button icon="taxi" block disabled={busy || wait > 0} onClick={register}>Registrer taxitur</Button>
+      {req && req.status !== "picked_up" ? (
+        <Button variant="secondary" block disabled={busy} onClick={() => confirm("Avbestille taxien?") && call("granny_cancel_taxi")}>Avbestill</Button>
+      ) : !req ? (
+        <Button icon="taxi" block disabled={busy || used || status.taxis === 0} onClick={() => call("granny_request_taxi", pos(coords))}>Bestill taxi</Button>
+      ) : null}
     </Sheet>
   );
 }

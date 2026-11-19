@@ -10,17 +10,20 @@ const MAX_SIDE = 1600;
 export function CameraCapture({
   title,
   hint,
+  selfie = false,
   onSend,
   onClose,
 }: {
   title: string;
   hint?: string;
+  /** Start med frontkameraet. */
+  selfie?: boolean;
   /** Kalles med bildet. Kast en Error med en lesbar melding hvis det feiler. */
   onSend: (photo: Blob) => Promise<void>;
   onClose: () => void;
 }) {
   const video = useRef<HTMLVideoElement>(null);
-  const [facing, setFacing] = useState<"environment" | "user">("environment");
+  const [facing, setFacing] = useState<"environment" | "user">(selfie ? "user" : "environment");
   const [photo, setPhoto] = useState<{ blob: Blob; url: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -117,11 +120,25 @@ export function CameraCapture({
   );
 }
 
-/** Last opp til Storage under <game_id>/ og returner stien. */
-export async function uploadPhoto(gameId: string, blob: Blob): Promise<string> {
-  const path = `${gameId}/${crypto.randomUUID()}.jpg`;
+/** Last opp til Storage under <game_id>/ og returner stien. `prefix` brukes for profilbilder ("avatar-") og side quests ("quest-"). */
+export async function uploadPhoto(gameId: string, blob: Blob, prefix = ""): Promise<string> {
+  const path = `${gameId}/${prefix}${crypto.randomUUID()}.jpg`;
   const { error } = await supabase.storage.from("photos").upload(path, blob, { contentType: "image/jpeg", upsert: false });
   if (error) throw new Error("Bildet ble ikke lastet opp. Sjekk nettet og prøv igjen.");
+  return path;
+}
+
+const VIDEO_TYPES: Record<string, string> = { "video/mp4": "mp4", "video/quicktime": "mov", "video/webm": "webm" };
+export const MAX_VIDEO_MB = 50;
+
+/** Last opp en video til en side quest. */
+export async function uploadVideo(gameId: string, file: File): Promise<string> {
+  const ext = VIDEO_TYPES[file.type];
+  if (!ext) throw new Error("Videoen må være MP4, MOV eller WebM.");
+  if (file.size > MAX_VIDEO_MB * 1024 * 1024) throw new Error(`Videoen er for stor. Maks ${MAX_VIDEO_MB} MB, så hold den kort.`);
+  const path = `${gameId}/quest-${crypto.randomUUID()}.${ext}`;
+  const { error } = await supabase.storage.from("photos").upload(path, file, { contentType: file.type, upsert: false });
+  if (error) throw new Error("Videoen ble ikke lastet opp. Sjekk nettet og prøv igjen.");
   return path;
 }
 
@@ -141,4 +158,40 @@ export function StoredPhoto({ path, className }: { path: string; className?: str
   return url
     ? <img src={url} alt="" className={className} />
     : <div className={`grid place-items-center bg-bg-sunken type-body-s text-text-tertiary ${className ?? ""}`}>Henter bilde …</div>;
+}
+
+/** Bilde eller video fra Storage. */
+export function StoredMedia({ path, media, className }: { path: string; media: "image" | "video"; className?: string }) {
+  const [url, setUrl] = useState<string | null>(null);
+  useEffect(() => {
+    let alive = true;
+    photoUrl(path).then((u) => alive && setUrl(u));
+    return () => { alive = false; };
+  }, [path]);
+  if (!url) return <div className={`grid place-items-center bg-bg-sunken type-body-s text-text-tertiary ${className ?? ""}`}>Henter …</div>;
+  return media === "video"
+    ? <video src={url} controls playsInline className={className} />
+    : <img src={url} alt="" className={className} />;
+}
+
+/** Gjør en bildefil (f.eks. fra spilleders PC) om til et lite JPEG-bilde. */
+export async function imageFileToJpeg(file: File, maxSide = 800): Promise<Blob> {
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const i = new Image();
+      i.onload = () => resolve(i);
+      i.onerror = () => reject(new Error("Fant ikke ut av bildet. Prøv et JPG- eller PNG-bilde."));
+      i.src = url;
+    });
+    const scale = Math.min(1, maxSide / Math.max(img.width, img.height));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(img.width * scale);
+    canvas.height = Math.round(img.height * scale);
+    canvas.getContext("2d")!.drawImage(img, 0, 0, canvas.width, canvas.height);
+    return await new Promise<Blob>((resolve, reject) =>
+      canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("Kunne ikke lagre bildet."))), "image/jpeg", 0.85));
+  } finally {
+    URL.revokeObjectURL(url);
+  }
 }

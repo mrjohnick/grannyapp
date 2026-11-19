@@ -7,6 +7,8 @@ import { formatCountdown, formatGameTime } from "../lib/gameClock";
 import type { AdminCatch, GameState, GrannyRow, PendingClaim, TeamCatch } from "../lib/types";
 import { Badge, Button, Dialog, Initial, SelectRow, Sheet, TeamDot } from "../components/ui";
 import { Icon } from "../components/Icon";
+import { Avatar } from "../components/Avatar";
+import { CameraCapture, StoredPhoto, uploadPhoto } from "./camera";
 
 const CONFIRM_TIMEOUT_S = 120;
 
@@ -16,6 +18,7 @@ const ERRORS: Record<string, string> = {
   "Hun er allerede fanget": "Hun er allerede fanget.",
   "Krever lisens": "Rømlingen kan bare fanges med lisens fra Nattevakten.",
   "Kravet er ikke åpent lenger": "Det kravet er ikke åpent lenger. Spilleder har kanskje avgjort det.",
+  "Ugyldig bilde": "Selfien ble ikke godtatt. Ta en ny.",
 };
 const friendly = (msg: string) => ERRORS[msg] ?? "Noe gikk galt. Prøv igjen.";
 
@@ -33,7 +36,8 @@ export function TeamCatchSheet({ state, gameS, onClose, onRegistered }: {
   const [selected, setSelected] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { tagOf } = useFamilies();
+  const { tagOf, avatarOf } = useFamilies();
+  const [camera, setCamera] = useState(false);
 
   useEffect(() => {
     supabase.from("grannies").select("id, name, is_romling, caught_at_s").then(({ data }) => {
@@ -48,25 +52,26 @@ export function TeamCatchSheet({ state, gameS, onClose, onRegistered }: {
     });
   }, [team.assigned_granny_id]);
 
-  const points = (g: GrannyRow) => (g.is_romling ? 20 : g.id === team.assigned_granny_id ? 15 : 10);
+  const points = (g: GrannyRow) =>
+    g.is_romling ? 20 : g.id === team.assigned_granny_id ? 15 : tagOf(g.id)?.kind === "bonus" ? 20 : 10;
   const chosen = grannies?.find((g) => g.id === selected);
   const romlingKnown = grannies?.some((g) => g.is_romling);
   const showLockedRomling = !team.has_license && gameS >= state.romling_reveal_s && !romlingKnown;
 
-  async function submit() {
+  async function submit(selfie: string | null) {
     if (!selected) return;
     setBusy(true);
     setError(null);
-    const { error } = await supabase.rpc("register_catch", { p_granny: selected });
+    const { error } = await supabase.rpc("register_catch", { p_granny: selected, p_selfie: selfie });
     setBusy(false);
-    if (error) return setError(friendly(error.message));
+    if (error) throw new Error(friendly(error.message));
     onRegistered();
   }
 
   return (
     <Sheet onClose={onClose}>
       <h2 className="type-display-m">Hvem har dere fanget?</h2>
-      <p className="type-body-m text-text-secondary">Hun må bekrefte før fangsten teller. Tidspunktet nå avgjør rekkefølgen.</p>
+      <p className="type-body-m text-text-secondary">Ta en selfie med grannyen. Hun må bekrefte før fangsten teller. Tidspunktet nå avgjør rekkefølgen.</p>
       {grannies === null && <p className="type-body-m text-text-tertiary">Henter grannies …</p>}
       {grannies?.length === 0 && <p className="type-body-m text-text-secondary">Alle er fanget.</p>}
       {grannies?.map((g) => (
@@ -74,7 +79,7 @@ export function TeamCatchSheet({ state, gameS, onClose, onRegistered }: {
           key={g.id}
           title={g.name}
           subtitle={`${g.id === team.assigned_granny_id ? "Deres granny" : g.is_romling ? "Rømlingen" : familyText(tagOf(g.id))} · ${points(g)}p`}
-          lead={<Initial name={g.name} />}
+          lead={avatarOf(g.id) ? <Avatar name={g.name} url={avatarOf(g.id)} /> : <Initial name={g.name} />}
           selected={g.id === selected}
           onClick={() => setSelected(g.id)}
           trailing={<Badge tone="success">Fri</Badge>}
@@ -90,9 +95,28 @@ export function TeamCatchSheet({ state, gameS, onClose, onRegistered }: {
         />
       )}
       {error && <p className="rounded-md bg-bg-danger-subtle p-3 type-body-s text-text-danger">{error}</p>}
-      <Button icon="target" block disabled={!chosen || busy} onClick={submit}>
-        {chosen ? `Registrer fangst av ${chosen.name}` : "Velg hvem dere fanget"}
+      <Button icon="camera" block disabled={!chosen || busy} onClick={() => setCamera(true)}>
+        {chosen ? `Ta selfie med ${chosen.name}` : "Velg hvem dere fanget"}
       </Button>
+      {chosen && (
+        <button type="button" className="type-label-s text-text-tertiary underline" disabled={busy}
+          onClick={() => submit(null).catch((e: Error) => setError(e.message))}>
+          Kameraet virker ikke? Registrer uten selfie
+        </button>
+      )}
+      {camera && chosen && (
+        <CameraCapture
+          title={`Selfie med ${chosen.name}`}
+          hint="Både laget og grannyen må synes."
+          selfie
+          onClose={() => setCamera(false)}
+          onSend={async (blob) => {
+            const path = await uploadPhoto(state.game_id, blob, "selfie-");
+            await submit(path);
+            setCamera(false);
+          }}
+        />
+      )}
     </Sheet>
   );
 }
@@ -279,6 +303,9 @@ export function AdminCatchQueue() {
           <p className="flex items-center gap-2 type-label-m">
             <TeamDot color={c.team_color} /> {c.team_name} sier de har fanget {c.granny_name}{c.is_romling ? " (Rømlingen)" : ""}.
           </p>
+          {c.selfie_path
+            ? <StoredPhoto path={c.selfie_path} className="max-h-64 w-full rounded-md object-contain" />
+            : <p className="type-body-s text-text-tertiary">Ingen selfie.</p>}
           {c.competing > 1 && <p className="type-body-s text-text-secondary">{c.competing} lag krever henne. Den som teller, gjør de andre ugyldige.</p>}
           <div className="flex gap-2">
             <Button size="M" icon="check" className="flex-1" disabled={busy === c.id} onClick={() => resolve(c.id, true)}>Fangst teller</Button>

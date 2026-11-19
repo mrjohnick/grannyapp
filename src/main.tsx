@@ -7,6 +7,7 @@ import { Join } from "./routes/Join";
 import { TelegramLink } from "./routes/TelegramLink";
 import { GrannyHome } from "./routes/GrannyHome";
 import { TeamHome } from "./routes/TeamHome";
+import { TaxiHome } from "./routes/TaxiHome";
 import { AdminLive } from "./routes/AdminLive";
 import { AdminSetup } from "./routes/AdminSetup";
 import { Summary } from "./routes/Summary";
@@ -28,6 +29,7 @@ createRoot(document.getElementById("root")!).render(
         <Route path="/granny/telegram" element={<GameProvider role="granny"><TelegramLink /></GameProvider>} />
         <Route path="/granny" element={<GameProvider role="granny"><GrannyHome /></GameProvider>} />
         <Route path="/lag" element={<GameProvider role="team"><TeamHome /></GameProvider>} />
+        <Route path="/taxi" element={<GameProvider role="taxi"><TaxiHome /></GameProvider>} />
         <Route path="/leder" element={<GameProvider role="admin"><AdminLive /></GameProvider>} />
         <Route path="/leder/oppsett" element={<GameProvider role="admin"><AdminSetup /></GameProvider>} />
         <Route path="/oppsummering" element={<GameProvider><Summary /></GameProvider>} />

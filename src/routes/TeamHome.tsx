@@ -15,11 +15,12 @@ import { PushChip } from "../components/PushChip";
 import { formatCountdown, formatGameTime } from "../lib/gameClock";
 import type { MapMarker, TeamMap, TeamStatus } from "../lib/types";
 import { TeamCatchSheet, TeamCatchStatus } from "../features/catch";
+import { QuestSheet } from "../features/quests";
 import { AlbumRevealSheet, markAlbumSeen, NabovaktSheet, PostkortSheet, RomlingSheet, ScoreSheet, unseenAlbumPhoto } from "../features/team";
 
-type Panel = "catch" | "nabovakt" | "romling" | "postkort" | "score" | null;
+type Panel = "catch" | "nabovakt" | "romling" | "postkort" | "score" | "quests" | null;
 
-const LIVE_TEXT = { sladret: "sladret på", spilleder: "vist av spilleder", utenfor: "utenfor området", bingo: "Bingo" } as const;
+const LIVE_TEXT = { sladret: "sladret på", spilleder: "vist av spilleder", evne: "deres evne", utenfor: "utenfor området", bingo: "Bingo" } as const;
 
 export function TeamHome() {
   const { state, gameS, refresh } = useGame();
@@ -35,7 +36,16 @@ export function TeamHome() {
   const [panel, setPanel] = useState<Panel>(null);
   const [catchKey, setCatchKey] = useState(0);
   const [notice, setNotice] = useState<string | null>(null);
-  const { tagOf } = useFamilies();
+  const { tagOf, avatarOf } = useFamilies();
+  const [abilities, setAbilities] = useState(0);
+  const [quests, setQuests] = useState(0);
+  const loadQuests = useCallback(async () => {
+    const { data } = await supabase.rpc("team_quests");
+    if (!data) return;
+    const q = data as { abilities_left: number; quests: Array<{ status: string | null; closed: boolean }> };
+    setAbilities(q.abilities_left);
+    setQuests(q.quests.filter((x) => !x.closed && x.status !== "approved" && x.status !== "pending").length);
+  }, []);
 
   const load = useCallback(async () => {
     const { data, error } = await supabase.rpc("team_map");
@@ -49,6 +59,8 @@ export function TeamHome() {
   useInterval(load, 10_000);
   useInterval(loadStatus, 20_000);
   useEffect(() => { if (version) { load(); loadStatus(); setCatchKey((k) => k + 1); } }, [version, load, loadStatus]);
+  useInterval(loadQuests, 20_000);
+  useEffect(() => { loadQuests(); }, [version, loadQuests]);
   useOnPing(state.ping_schedule_s, gameS, () => {
     // Litt forsinkelse, så siste Telegram-posisjon før pinget rekker å komme inn.
     setTimeout(() => { load(); refresh(); }, 1500);
@@ -65,19 +77,23 @@ export function TeamHome() {
     if (blind) return [];
     const list = zoneMarkers(zones);
     for (const m of map?.markers ?? []) {
+      if (m.kind === "taxi") {
+        list.push({ key: `taxi-${m.at_s}-${m.lat}`, kind: "taxi", lat: m.lat, lng: m.lng, label: `Taxi hentet her · ${formatGameTime(m.at_s)}` });
+        continue;
+      }
       // Hver granny merkes med familien sin (laget) eller «★ Bonus».
       const tag = m.kind === "own_granny" ? "Deres" : tagText(tagOf(m.id));
       const who = tag ? `${m.name} (${tag})` : m.name;
       const label = m.kind === "romling" ? "???"
         : m.kind === "anonym" ? "Noen sladret"
         : m.live_reason ? `${who} · ${LIVE_TEXT[m.live_reason]}` : who;
-      list.push({ key: m.id ?? `${m.kind}-${m.at_s}`, kind: m.kind, lat: m.lat, lng: m.lng, label });
+      list.push({ key: m.id ?? `${m.kind}-${m.at_s}`, kind: m.kind, lat: m.lat, lng: m.lng, label, avatarUrl: m.kind === "romling" ? null : avatarOf(m.id) });
     }
     if (coords) list.push({ key: "meg", kind: "meg", lat: coords.lat, lng: coords.lng, label: "Dere" });
     return list;
-  }, [blind, zones, map, coords, tagOf]);
+  }, [blind, zones, map, coords, tagOf, avatarOf]);
 
-  const free = map?.markers.filter((m) => m.kind !== "romling" && m.kind !== "anonym").length ?? 0;
+  const free = map?.markers.filter((m) => m.kind !== "romling" && m.kind !== "anonym" && m.kind !== "taxi").length ?? 0;
   const running = state.status === "running";
   const hunting = running && gameS >= state.head_start_s;
   const openCard = status?.postcards.find((p) => gameS < p.closes_at_s && !p.won_by);
@@ -90,6 +106,7 @@ export function TeamHome() {
     { key: "nabovakt", icon: "eye", label: "Nabovakt", hot: nearNabovakt, show: true },
     { key: "postkort", icon: "camera", label: "Postkort", badge: openCard ? formatCountdown(openCard.closes_at_s - gameS) : undefined, hot: !!openCard, show: true },
     { key: "romling", icon: "moon", label: "Rømlingen", hot: atPost && !status?.has_license, badge: status?.has_license ? "Lisens" : undefined, show: romlingOut },
+    { key: "quests", icon: "list", label: "Quests", badge: abilities > 0 ? `${abilities} evne${abilities === 1 ? "" : "r"}` : quests > 0 ? String(quests) : undefined, hot: abilities > 0, show: true },
     { key: "score", icon: "trophy", label: status ? `${status.points}p` : "Poeng", show: true },
   ];
 
@@ -142,12 +159,12 @@ export function TeamHome() {
             <Link to="/oppsummering" className="block w-full"><Button icon="trophy" block>Se oppsummeringen</Button></Link>
           ) : (
             <>
-              <div className="grid w-full grid-cols-4 gap-2">
+              <div className="grid w-full gap-2" style={{ gridTemplateColumns: `repeat(${actions.filter((a) => a.show).length}, minmax(0, 1fr))` }}>
                 {actions.filter((a) => a.show).map((a) => (
                   <button
                     key={a.key}
                     type="button"
-                    disabled={!status || (a.key !== "score" && !hunting)}
+                    disabled={!status || (a.key !== "score" && a.key !== "quests" && !hunting)}
                     onClick={() => setPanel(a.key)}
                     className={`relative flex flex-col items-center gap-1 rounded-lg border-2 border-border-strong py-2 shadow-hard active:translate-y-[2px] active:shadow-none disabled:opacity-50 ${
                       a.hot ? "bg-bg-accent" : "bg-bg-surface"
@@ -182,6 +199,9 @@ export function TeamHome() {
         {panel === "postkort" && status && (
           <PostkortSheet status={status} gameS={gameS} gameId={state.game_id} coords={coords} onClose={() => setPanel(null)}
             onDone={(msg) => { setPanel(null); setNotice(msg); loadStatus(); }} />
+        )}
+        {panel === "quests" && (
+          <QuestSheet gameId={state.game_id} blind={blind} onClose={() => setPanel(null)} onChanged={() => { loadQuests(); load(); }} />
         )}
         {panel === "score" && status && <ScoreSheet status={status} teamId={team.id} onClose={() => setPanel(null)} />}
         {albumPhoto && status && (

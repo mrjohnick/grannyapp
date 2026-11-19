@@ -34,7 +34,7 @@ select pg_temp.as_user('44444444-0000-0000-0000-000000000003');
 select lives_ok($$ select public.admin_update_game('{"rules": {"blind_s": 300}}') $$, 'spilleder kan endre regler mens spillet går');
 select pg_temp.as_postgres();
 select is((select (rules->>'blind_s')::int from public.games where id = '00000000-0000-0000-0000-000000000001'), 300, 'regelen er lagret');
-select is((select (rules->>'taxi_cooldown_s')::int from public.games where id = '00000000-0000-0000-0000-000000000001'), 1800, 'de andre reglene er urørt');
+select is((select (rules->>'snitch_live_s')::int from public.games where id = '00000000-0000-0000-0000-000000000001'), 60, 'de andre reglene er urørt');
 select pg_temp.as_user('44444444-0000-0000-0000-000000000003');
 select throws_ok($$ select public.admin_update_game('{"duration_s": 600}') $$, 'P0001', 'Tidene kan bare endres før spillet starter', 'tidene er låst');
 select throws_ok($$ select public.admin_update_game('{"rules": {"blind_s": -5}}') $$, 'P0001', 'Reglene må være tall som er 0 eller mer', 'negative regler avvises');

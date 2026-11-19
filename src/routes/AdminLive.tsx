@@ -12,6 +12,7 @@ import { LogoLockup } from "../components/Logo";
 import { formatClock, formatCountdown } from "../lib/gameClock";
 import { AdminCatchQueue } from "../features/catch";
 import { AdminEventLog, AdminPhotoQueue, AdminReveal, AdminTools } from "../features/admin";
+import { AdminQuestQueue, AdminQuests } from "../features/quests";
 import { PushChip } from "../components/PushChip";
 import type { AdminLive as AdminLiveData, MapMarker, TelegramStats } from "../lib/types";
 
@@ -28,7 +29,7 @@ export function AdminLive() {
   const [live, setLive] = useState<AdminLiveData | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { tagOf } = useFamilies(state.status);
+  const { tagOf, avatarOf } = useFamilies(state.status);
 
   const load = useCallback(async () => {
     const { data, error } = await supabase.rpc("admin_live");
@@ -71,14 +72,19 @@ export function AdminLive() {
         kind: g.live_reason ? "live" : g.is_romling ? "romling" : "granny",
         lat: g.lat, lng: g.lng,
         label: `${g.name} (${g.is_romling ? "Rømling" : tagText(tagOf(g.id)) ?? "–"}) · ${ageText(g.age_s)}`,
+        avatarUrl: avatarOf(g.id),
       });
     }
     for (const t of live?.teams ?? []) {
       if (t.lat == null || t.lng == null) continue;
       list.push({ key: t.id, kind: "team", color: t.color, lat: t.lat, lng: t.lng, label: t.name });
     }
+    for (const x of live?.taxis ?? []) {
+      if (x.lat == null || x.lng == null) continue;
+      list.push({ key: x.id, kind: "taxi", lat: x.lat, lng: x.lng, label: x.ride ? `${x.name} · ${x.ride.granny_name}` : x.name });
+    }
     return list;
-  }, [zones, live, tagOf]);
+  }, [zones, live, tagOf, avatarOf]);
 
   const stale = state.status === "running"
     ? (live?.grannies ?? []).filter((g) => g.caught_at_s == null && (g.age_s == null || g.age_s > STALE_S))
@@ -118,6 +124,7 @@ export function AdminLive() {
 
         <AdminCatchQueue />
         <AdminPhotoQueue teams={live?.teams ?? []} />
+        <AdminQuestQueue />
 
         {stale.length > 0 && (
           <section className="rounded-lg border-2 border-border-strong bg-bg-warning-subtle p-3">
@@ -129,6 +136,7 @@ export function AdminLive() {
         )}
 
         {state.status === "running" && <AdminReveal live={live} />}
+        <AdminQuests live={live} />
         <AdminTools live={live} />
         <AdminEventLog />
 
@@ -148,6 +156,23 @@ export function AdminLive() {
                   : <span className={`type-timer-s ${g.age_s == null || g.age_s > STALE_S ? "text-text-warning" : "text-text-tertiary"}`}>{ageText(g.age_s)}</span>}
               </li>
             ))}
+          </ul>
+        </section>
+
+        <section>
+          <h2 className="mb-2 type-heading-m">Taxi</h2>
+          {(live?.taxi_waiting.length ?? 0) > 0 && (
+            <p className="mb-1 rounded-md bg-bg-warning-subtle px-2 py-1 type-body-s">Venter: {live!.taxi_waiting.join(", ")}</p>
+          )}
+          <ul className="flex flex-col gap-1">
+            {(live?.taxis ?? []).map((x) => (
+              <li key={x.id} className="flex items-center gap-2 px-2 py-1 type-body-s">
+                <span className="flex-1 type-label-s">{x.name}</span>
+                {x.ride ? <Badge tone="warning">{x.ride.status === "accepted" ? "Henter" : "Kjører"} {x.ride.granny_name}</Badge> : <span className="text-text-tertiary">ledig</span>}
+                <span className="type-timer-s text-text-tertiary">{ageText(x.age_s)}</span>
+              </li>
+            ))}
+            {(live?.taxis.length ?? 0) === 0 && <li className="px-2 type-body-s text-text-tertiary">Ingen taxier. Legg dem inn i oppsettet.</li>}
           </ul>
         </section>
 

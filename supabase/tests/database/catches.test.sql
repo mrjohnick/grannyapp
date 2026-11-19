@@ -61,7 +61,7 @@ select is((select caught_by from public.grannies where name = 'Gerd'), '00000000
 select is((select status::text from public.catches c join public.teams t on t.id = c.team_id where t.name = 'Lag Blå'), 'void', 'det andre kravet faller bort');
 select is(pg_temp.team_points('00000000-0000-0000-0000-0000000000b2'), 15, 'egen granny gir 15p');
 select is((select delta from public.points_ledger where reason = 'sladrehank'), 3, 'sladrehanken får 3p når målet fanges innen 10 min');
-select is((select delta from public.points_ledger where reason = 'honnorrabatt' and granny_id = '00000000-0000-0000-0000-0000000000a2'), 3, 'honnørrabatt etter 75 min og under 3 taxiturer');
+select is((select count(*)::int from public.points_ledger where reason = 'honnorrabatt'), 0, 'honnørrabatten er fjernet');
 select is((select catch_order from public.grannies where name = 'Gerd'), 1, 'Gerd er fanget som nr. 1');
 
 -- Astrid sier nei til Lag Blå, og spilleder avgjør.
@@ -90,16 +90,20 @@ select results_eq(
   $$ select p.proname::text collate "C" from pg_proc p join pg_namespace n on n.oid = p.pronamespace
      where n.nspname = 'public' and has_function_privilege('authenticated', p.oid, 'execute')
      order by 1 $$,
-  $$ select v::text collate "C" from (values ('admin_adjust_points'), ('admin_broadcast'), ('admin_catch_queue'), ('admin_delete'),
-            ('admin_live'), ('admin_photos'), ('admin_reset_game'), ('admin_resolve_catch'), ('admin_reveal_granny'), ('admin_review_photo'), ('admin_save_granny'),
-            ('admin_save_team'), ('admin_save_zone'), ('admin_set_status'), ('admin_setup'), ('admin_telegram_stats'),
-            ('admin_update_game'), ('can_upload_photo'), ('can_view_photo'), ('game_seconds'), ('game_state'), ('game_summary'),
-            ('granny_map'), ('granny_pending_catches'), ('granny_respond_catch'), ('granny_snitch'), ('granny_status'),
-            ('granny_taxi'), ('i_am_romling'), ('int_array_is_sorted'), ('is_admin_of'), ('join_game'), ('last_ping_s'),
-            ('me'), ('my_events'), ('my_game_id'), ('my_granny_id'), ('my_role'), ('my_team_id'), ('my_telegram'),
-            ('next_ping_s'), ('register_catch'), ('report_position'), ('save_push_subscription'), ('submit_photo'),
-            ('team_catches'), ('team_has_license'), ('team_map'), ('team_nabovakt'), ('team_romling_guess'),
-            ('team_status'), ('zone_visible')) x(v) $$,
+  $$ select v::text collate "C" from (values ('admin_adjust_points'), ('admin_broadcast'), ('admin_catch_queue'), ('admin_close_quest'), ('admin_delete'),
+            ('admin_live'), ('admin_photos'), ('admin_quest_queue'), ('admin_quests'), ('admin_reset_game'),
+            ('admin_resolve_catch'), ('admin_reveal_granny'), ('admin_review_photo'), ('admin_review_quest'),
+            ('admin_save_granny'), ('admin_save_quest'), ('admin_save_taxi'), ('admin_save_team'), ('admin_save_zone'),
+            ('admin_set_avatar'), ('admin_set_status'), ('admin_setup'), ('admin_telegram_stats'), ('admin_update_game'),
+            ('can_upload_photo'), ('can_view_photo'), ('game_seconds'), ('game_state'), ('game_summary'),
+            ('granny_cancel_taxi'), ('granny_map'), ('granny_pending_catches'), ('granny_request_taxi'),
+            ('granny_respond_catch'), ('granny_set_avatar'), ('granny_snitch'), ('granny_status'), ('i_am_romling'),
+            ('int_array_is_sorted'), ('is_admin_of'), ('join_game'), ('last_ping_s'), ('me'), ('my_events'),
+            ('my_game_id'), ('my_granny_id'), ('my_role'), ('my_team_id'), ('my_telegram'), ('next_ping_s'),
+            ('register_catch'), ('report_position'), ('save_push_subscription'), ('submit_photo'), ('submit_quest'),
+            ('taxi_accept_next'), ('taxi_dropoff'), ('taxi_pickup'), ('taxi_queue'), ('taxi_release'), ('team_catches'),
+            ('team_has_license'), ('team_map'), ('team_nabovakt'), ('team_quests'), ('team_romling_guess'),
+            ('team_status'), ('team_use_ability'), ('zone_visible')) x(v) $$,
   'bare tillatte funksjoner kan kalles av klienter');
 
 select * from finish();

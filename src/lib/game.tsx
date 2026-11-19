@@ -29,5 +29,5 @@ export function GameProvider({ role, children }: { role?: Role; children: ReactN
 }
 
 export function homeFor(role: Role) {
-  return role === "admin" ? "/leder" : role === "team" ? "/lag" : "/granny";
+  return role === "admin" ? "/leder" : role === "team" ? "/lag" : role === "taxi" ? "/taxi" : "/granny";
 }

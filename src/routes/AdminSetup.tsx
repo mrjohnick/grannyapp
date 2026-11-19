@@ -10,6 +10,7 @@ import { GameMap, zoneMarkers } from "../map/GameMap";
 import { Badge, Button, TeamDot } from "../components/ui";
 import { Icon } from "../components/Icon";
 import type { SetupData, TeamColor, Zone } from "../lib/types";
+import { imageFileToJpeg, StoredPhoto, uploadPhoto } from "../features/camera";
 
 const COLORS: Array<[TeamColor, string]> = [
   ["rod", "Rød"], ["oransje", "Oransje"], ["gul", "Gul"], ["lime", "Lime"], ["gronn", "Grønn"],
@@ -20,14 +21,16 @@ const ZONE_KINDS: Array<[Zone["kind"], string, number]> = [
   ["nabovakt", "Nabovakt-punkt", 30], ["postkort", "Postkort", 40],
 ];
 const RULES: Array<[string, string, "min" | "s" | "m"]> = [
-  ["taxi_cooldown_s", "Taxi, minutter mellom", "min"],
+  ["taxi_max_rides", "Taxiturer per granny", "m"],
+  ["taxi_pickup_show_s", "Hentested vises i (min)", "min"],
+  ["catch_points_bonus", "Bonus-granny, poeng", "m"],
+  ["ability_live_s", "Se granny live i (sek)", "s"],
   ["blind_s", "Blind i (min)", "min"],
   ["reblind_cooldown_s", "Ny blindhet tidligst etter (min)", "min"],
   ["nabovakt_cooldown_s", "Nabovakt, samme punkt (min)", "min"],
   ["nabovakt_search_m", "Nabovakt, søkeradius (m)", "m"],
   ["romling_retry_s", "Rømlingen, nytt forsøk (min)", "min"],
   ["snitch_live_s", "Sladret: live i (sek)", "s"],
-  ["honnor_max_rides", "Honnørrabatt, maks taxiturer", "m"],
   ["retention_days", "Slett data etter (dager)", "m"],
 ];
 
@@ -75,6 +78,7 @@ export function AdminSetup() {
         <GameSettings data={data} locked={locked} save={(s) => call("admin_update_game", { p_settings: s }, "Spillet er lagret.")} />
         <Grannies data={data} locked={locked} call={call} />
         <Teams data={data} locked={locked} call={call} />
+        <Taxis data={data} call={call} />
         <Codes data={data} />
       </aside>
       <ZoneEditor data={data} call={call} />
@@ -147,7 +151,7 @@ function Grannies({ data, locked, call }: { data: SetupData; locked: boolean; ca
   return (
     <section className="flex flex-col gap-2">
       <h2 className="type-heading-m">Grannies <span className="type-body-s text-text-tertiary">({data.grannies.length})</span></h2>
-      {data.grannies.map((g) => <GrannyRow key={g.id} g={g} family={data.teams.find((t) => t.assigned_granny_id === g.id)?.name ?? null} locked={locked} call={call} />)}
+      {data.grannies.map((g) => <GrannyRow key={g.id} g={g} gameId={data.game.id} family={data.teams.find((t) => t.assigned_granny_id === g.id)?.name ?? null} locked={locked} call={call} />)}
       {!locked && (
         <div className="flex gap-2">
           <input className={`${field} flex-1`} value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="Ny granny" />
@@ -162,12 +166,31 @@ function Grannies({ data, locked, call }: { data: SetupData; locked: boolean; ca
   );
 }
 
-function GrannyRow({ g, family, locked, call }: { g: SetupData["grannies"][number]; family: string | null; locked: boolean; call: Call }) {
+function GrannyRow({ g, gameId, family, locked, call }: { g: SetupData["grannies"][number]; gameId: string; family: string | null; locked: boolean; call: Call }) {
   const [name, setName] = useState(g.name);
+  const [uploading, setUploading] = useState(false);
+  async function setPhoto(file: File | undefined) {
+    if (!file) return;
+    setUploading(true);
+    try {
+      const path = await uploadPhoto(gameId, await imageFileToJpeg(file), "avatar-");
+      await call("admin_set_avatar", { p_granny: g.id, p_path: path }, "Profilbildet er lagret.");
+    } catch (e) {
+      alert((e as Error).message);
+    } finally {
+      setUploading(false);
+    }
+  }
   const [rom, setRom] = useState(g.is_romling);
   const dirty = name !== g.name || rom !== g.is_romling;
   return (
     <div className="flex flex-wrap items-center gap-2 rounded-md border border-border-default p-2">
+      <label className="relative size-10 shrink-0 cursor-pointer overflow-hidden rounded-full border-2 border-border-brand bg-bg-brand-subtle" title="Bytt profilbilde">
+        {g.avatar_path
+          ? <StoredPhoto path={g.avatar_path} className="size-full object-cover" />
+          : <span className="grid size-full place-items-center type-label-s text-text-brand">{uploading ? "…" : "Bilde"}</span>}
+        <input type="file" accept="image/*" className="hidden" disabled={uploading} onChange={(e) => setPhoto(e.target.files?.[0])} />
+      </label>
       <input className={`${field} min-w-0 flex-1`} value={name} onChange={(e) => setName(e.target.value)} />
       <label className="flex items-center gap-1 type-body-s"><input type="checkbox" checked={rom} onChange={(e) => setRom(e.target.checked)} /> Rømling</label>
       {dirty && <Button size="M" onClick={() => call("admin_save_granny", { p_id: g.id, p_name: name, p_is_romling: rom }, "Lagret.")}>Lagre</Button>}
@@ -239,11 +262,50 @@ function TeamRow({ t, data, locked, call }: { t: SetupData["teams"][number]; dat
   );
 }
 
+function Taxis({ data, call }: { data: SetupData; call: Call }) {
+  const [newName, setNewName] = useState("");
+  return (
+    <section className="flex flex-col gap-2">
+      <h2 className="type-heading-m">Taxier <span className="type-body-s text-text-tertiary">({data.taxis.length})</span></h2>
+      <p className="type-body-s text-text-tertiary">Hver sjåfør får sin egen innlogging. Grannyene ser taxiene på kartet og bestiller i appen.</p>
+      {data.taxis.map((x) => <TaxiRow key={x.id} x={x} call={call} />)}
+      <div className="flex gap-2">
+        <input className={`${field} flex-1`} value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="Ny taxi, f.eks. «Taxi 1 – Ola»" />
+        <Button size="M" variant="secondary" disabled={!newName.trim()}
+          onClick={async () => { if (await call("admin_save_taxi", { p_id: null, p_name: newName }, "Taxien er lagt til.")) setNewName(""); }}>
+          Legg til
+        </Button>
+      </div>
+    </section>
+  );
+}
+
+function TaxiRow({ x, call }: { x: SetupData["taxis"][number]; call: Call }) {
+  const [name, setName] = useState(x.name);
+  return (
+    <div className="flex flex-wrap items-center gap-2 rounded-md border border-border-default p-2">
+      <input className={`${field} min-w-0 flex-1`} value={name} onChange={(e) => setName(e.target.value)} />
+      {name !== x.name
+        ? <Button size="M" onClick={() => call("admin_save_taxi", { p_id: x.id, p_name: name }, "Lagret.")}>Lagre</Button>
+        : (
+          <button type="button" className="text-text-danger" aria-label={`Slett ${x.name}`}
+            onClick={() => confirm(`Slette ${x.name}?`) && call("admin_delete", { p_kind: "taxi", p_id: x.id }, "Slettet.")}>
+            <Icon name="x" size={20} />
+          </button>
+        )}
+      <div className="flex w-full gap-2 type-body-s text-text-secondary">
+        <span className="type-timer-s">{x.code}</span><span>· {x.phones} tlf</span>
+      </div>
+    </div>
+  );
+}
+
 function Codes({ data }: { data: SetupData }) {
   const link = (code: string | null) => (code ? `${location.origin}/?kode=${code}` : "");
   const rows = [
     ...data.admin_codes.map((c) => ["Spilleder", c] as const),
     ...data.teams.map((t) => [t.name, t.code] as const),
+    ...data.taxis.map((x) => [x.name, x.code] as const),
     ...data.grannies.map((g) => [g.is_romling ? `${g.name} (Rømling)` : g.name, g.code] as const),
   ];
   return (

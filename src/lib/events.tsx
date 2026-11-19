@@ -22,9 +22,12 @@ const ICONS: Record<string, IconName> = {
   romling_reveal: "moon", license: "lock", catch_registered: "target", catch_confirmed: "target", catch_overdue: "alert",
   photo_pending: "camera", photo_approved: "check", photo_rejected: "x", message: "bell", end: "trophy", start: "play",
   pause: "pause", resume: "play", reveal: "eye", reveal_target: "eye",
+  taxi_request: "taxi", taxi_accepted: "taxi", taxi_cancelled: "taxi", taxi_released: "taxi",
+  quest_new: "list", quest_pending: "list", quest_approved: "check", quest_rejected: "x",
+  ability_used: "eye", ability_target: "eye",
 };
 
-const URGENT = new Set(["catch_registered", "snitch_target", "reveal_target", "nabovakt_seen", "blind", "license", "catch_overdue", "romling_reveal"]);
+const URGENT = new Set(["catch_registered", "snitch_target", "reveal_target", "ability_target", "taxi_request", "taxi_accepted", "quest_new", "nabovakt_seen", "blind", "license", "catch_overdue", "romling_reveal"]);
 const SHOW_FOR_MS = 9000;
 const storageKey = (gameId: string) => `granny.events.${gameId}`;
 

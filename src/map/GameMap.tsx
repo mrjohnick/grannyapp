@@ -21,6 +21,7 @@ const MARKER_STYLE: Record<MarkerKind, { bg: string; icon?: IconName; iconColor:
   meg:         { bg: "var(--color-marker-meg)", iconColor: "#fff", halo: "var(--color-marker-meg)" },
   team:        { bg: "var(--color-bg-surface)", iconColor: "#fff" },
   postkort:    { bg: "var(--color-bg-surface)", icon: "camera", iconColor: "var(--plomme-900)" },
+  taxi:        { bg: "var(--color-bg-warning)", icon: "taxi", iconColor: "var(--plomme-900)" },
 };
 
 const ZONE_COLOR: Partial<Record<Zone["kind"], string>> = {
@@ -41,8 +42,8 @@ function markerElement(m: MapMarker) {
     <div style="position:relative;width:60px;height:60px;display:flex;align-items:center;justify-content:center">
       ${s.halo ? `<div style="position:absolute;inset:0;border-radius:999px;background:${s.halo};opacity:.3"></div>` : ""}
       <div style="width:${size}px;height:${size}px;border-radius:999px;background:${dotBg};display:flex;align-items:center;justify-content:center;
-                  border:3px solid ${s.halo && m.kind !== "meg" ? s.halo : "var(--color-bg-surface)"};box-shadow:var(--shadow-marker)">
-        ${s.icon ? iconSvg(s.icon, 22, s.iconColor) : ""}
+                  border:3px solid ${s.halo && m.kind !== "meg" ? s.halo : "var(--color-bg-surface)"};box-shadow:var(--shadow-marker);overflow:hidden">
+        ${m.avatarUrl ? `<img src="${escapeHtml(m.avatarUrl)}" alt="" style="width:100%;height:100%;object-fit:cover" />` : s.icon ? iconSvg(s.icon, 22, s.iconColor) : ""}
       </div>
     </div>
     ${m.label ? `<div style="margin-top:-6px;padding:2px 8px;border-radius:999px;background:var(--color-bg-inverse);color:var(--color-text-inverse);font:600 13px/16px var(--font-sans);white-space:nowrap">${escapeHtml(m.label)}</div>` : ""}`;
