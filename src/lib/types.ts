@@ -240,7 +240,8 @@ export type AdminPhoto = {
   id: string;
   kind: "fotoalbum" | "bingo" | "postkort";
   status: "pending";
-  storage_path: string;
+  /** null: levert uten bilde (beviset er i Telegram). */
+  storage_path: string | null;
   submitted_at: string;
   submitted_s: number;
   granny_id: string | null;
@@ -332,8 +333,11 @@ export type TeamQuests = {
 };
 
 export type AdminQuest = Quest & {
+  audience: "teams" | "grannies";
   team_id: string | null;
   team_name: string | null;
+  granny_id: string | null;
+  granny_name: string | null;
   pending: number;
   approved_teams: string[];
 };
@@ -345,11 +349,15 @@ export type QuestSubmission = {
   quest_description: string | null;
   reward_points: number;
   reward_abilities: number;
-  team_id: string;
-  team_name: string;
-  team_color: TeamColor;
-  storage_path: string;
-  media: "image" | "video";
+  /** Lag eller granny som leverte (det ene er null). */
+  team_id: string | null;
+  team_name: string | null;
+  team_color: TeamColor | null;
+  granny_id: string | null;
+  granny_name: string | null;
+  /** Gamle innsendinger kan ha bilde eller video. Nye leveres uten (beviset er i Telegram). */
+  storage_path: string | null;
+  media: "image" | "video" | null;
   submitted_s: number;
   submitted_at: string;
 };

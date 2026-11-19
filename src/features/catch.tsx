@@ -1,16 +1,15 @@
-// Fangst: L2 (lag registrerer), G5 (granny bekrefter), G6 (fanget), S1-kø.
+// Fangst: L2 (lag registrerer), G6 (fanget), S1-kø. Bildet sendes i lagets Telegram-gruppe,
+// og bare spilleder godkjenner fangsten.
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
 import { useFamilies, type GrannyTag } from "../lib/families";
 import { useInterval } from "../lib/hooks";
-import { formatCountdown, formatGameTime } from "../lib/gameClock";
-import type { AdminCatch, GameState, GrannyRow, PendingClaim, TeamCatch } from "../lib/types";
-import { Badge, Button, Dialog, Initial, SelectRow, Sheet, TeamDot } from "../components/ui";
+import { formatGameTime } from "../lib/gameClock";
+import type { AdminCatch, GameState, GrannyRow, TeamCatch } from "../lib/types";
+import { Badge, Button, Initial, SelectRow, Sheet, TeamDot } from "../components/ui";
 import { Icon } from "../components/Icon";
 import { Avatar } from "../components/Avatar";
-import { CameraCapture, StoredPhoto, uploadPhoto } from "./camera";
-
-const CONFIRM_TIMEOUT_S = 120;
+import { StoredPhoto } from "./camera";
 
 const ERRORS: Record<string, string> = {
   "Spillet er ikke i gang": "Spillet er ikke i gang. Vent til spilleder starter eller fortsetter.",
@@ -36,7 +35,6 @@ export function TeamCatchSheet({ state, onClose, onRegistered }: {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { tagOf, avatarOf } = useFamilies();
-  const [camera, setCamera] = useState(false);
 
   useEffect(() => {
     supabase.from("grannies").select("id, name, is_romling, caught_at_s").then(({ data }) => {
@@ -55,20 +53,23 @@ export function TeamCatchSheet({ state, onClose, onRegistered }: {
     g.is_romling ? 20 : g.id === team.assigned_granny_id ? 15 : tagOf(g.id)?.kind === "bonus" ? 20 : 10;
   const chosen = grannies?.find((g) => g.id === selected);
 
-  async function submit(selfie: string | null) {
+  async function submit() {
     if (!selected) return;
     setBusy(true);
     setError(null);
-    const { error } = await supabase.rpc("register_catch", { p_granny: selected, p_selfie: selfie });
+    const { error } = await supabase.rpc("register_catch", { p_granny: selected });
     setBusy(false);
-    if (error) throw new Error(friendly(error.message));
+    if (error) return setError(friendly(error.message));
     onRegistered();
   }
 
   return (
     <Sheet onClose={onClose}>
       <h2 className="type-display-m">Hvem har dere fanget?</h2>
-      <p className="type-body-m text-text-secondary">Ta en selfie med grannyen. Hun må bekrefte før fangsten teller. Tidspunktet nå avgjør rekkefølgen.</p>
+      <p className="type-body-m text-text-secondary">
+        Ta et bilde med grannyen og send det i lagets Telegram-gruppe. Registrer så fangsten her.
+        Den teller når spilleder har godkjent den. Tidspunktet nå avgjør rekkefølgen.
+      </p>
       {grannies === null && <p className="type-body-m text-text-tertiary">Henter grannies …</p>}
       {grannies?.length === 0 && <p className="type-body-m text-text-secondary">Alle er fanget.</p>}
       {grannies?.map((g) => (
@@ -83,28 +84,9 @@ export function TeamCatchSheet({ state, onClose, onRegistered }: {
         />
       ))}
       {error && <p className="rounded-md bg-bg-danger-subtle p-3 type-body-s text-text-danger">{error}</p>}
-      <Button icon="camera" block disabled={!chosen || busy} onClick={() => setCamera(true)}>
-        {chosen ? `Ta selfie med ${chosen.name}` : "Velg hvem dere fanget"}
+      <Button icon="target" block disabled={!chosen || busy} onClick={submit}>
+        {chosen ? `Registrer fangst av ${chosen.name}` : "Velg hvem dere fanget"}
       </Button>
-      {chosen && (
-        <button type="button" className="type-label-s text-text-tertiary underline" disabled={busy}
-          onClick={() => submit(null).catch((e: Error) => setError(e.message))}>
-          Kameraet virker ikke? Registrer uten selfie
-        </button>
-      )}
-      {camera && chosen && (
-        <CameraCapture
-          title={`Selfie med ${chosen.name}`}
-          hint="Både laget og grannyen må synes."
-          selfie
-          onClose={() => setCamera(false)}
-          onSend={async (blob) => {
-            const path = await uploadPhoto(state.game_id, blob, "selfie-");
-            await submit(path);
-            setCamera(false);
-          }}
-        />
-      )}
     </Sheet>
   );
 }
@@ -124,9 +106,8 @@ export function TeamCatchStatus({ refreshKey }: { refreshKey: number }) {
 
   let tone = "bg-bg-surface", icon: "clock" | "check" | "x" | "alert" = "clock", title = "", text = "";
   if (c.status === "pending") {
-    const left = CONFIRM_TIMEOUT_S - c.age_s;
-    title = `Venter på at ${c.granny_name} bekrefter`;
-    text = left > 0 ? `Spilleder avgjør om ${formatCountdown(left)} hvis hun ikke svarer.` : "Hun har ikke svart. Spilleder avgjør.";
+    title = `${c.granny_name}: venter på spilleder`;
+    text = "Husk å sende bildet i lagets Telegram-gruppe.";
   } else if (c.status === "confirmed") {
     tone = "bg-bg-success-subtle"; icon = "check";
     title = `${c.granny_name} er fanget!`;
@@ -134,7 +115,7 @@ export function TeamCatchStatus({ refreshKey }: { refreshKey: number }) {
   } else if (c.status === "void") {
     tone = "bg-bg-warning-subtle"; icon = "alert";
     title = `${c.granny_name} er tatt av et annet lag`;
-    text = "Hun valgte et annet lag som fanget henne.";
+    text = "Spilleder godkjente et annet lag.";
   } else if (c.admin_deciding) {
     tone = "bg-bg-warning-subtle"; icon = "alert";
     title = `${c.granny_name} sier nei`;
@@ -153,78 +134,6 @@ export function TeamCatchStatus({ refreshKey }: { refreshKey: number }) {
         <div className="type-body-s text-text-secondary">{text}</div>
       </div>
     </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// G5 · Bekreft fangst
-// ---------------------------------------------------------------------------
-export function GrannyCatchDialog({ onResolved }: { onResolved: () => void }) {
-  const [claims, setClaims] = useState<PendingClaim[]>([]);
-  const [selected, setSelected] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [, tick] = useState(0);
-
-  const load = useCallback(async () => {
-    const { data } = await supabase.rpc("granny_pending_catches");
-    if (data) setClaims(data as PendingClaim[]);
-  }, []);
-  useInterval(load, 4000);
-  useInterval(() => tick((n) => n + 1), 1000, claims.length > 0);
-
-  if (claims.length === 0) return null;
-  const single = claims.length === 1;
-  const choice = single ? claims[0].id : selected;
-  const oldest = Math.max(...claims.map((c) => c.age_s));
-  const left = CONFIRM_TIMEOUT_S - oldest;
-
-  async function respond(accept: boolean) {
-    setBusy(true);
-    setError(null);
-    const { error } = await supabase.rpc("granny_respond_catch", { p_catch: accept ? choice : null, p_accept: accept });
-    setBusy(false);
-    if (error) {
-      setError(friendly(error.message));
-      load();
-      return;
-    }
-    setClaims([]);
-    onResolved();
-  }
-
-  return (
-    <Dialog>
-      <div className="flex items-center justify-between">
-        <span className="grid size-12 place-items-center rounded-full bg-bg-danger text-icon-on-danger"><Icon name="target" /></span>
-        <span className="type-timer-l text-text-danger">{left > 0 ? formatCountdown(left) : "0:00"}</span>
-      </div>
-      <h2 className="type-display-m">
-        {single ? `${claims[0].team_name} sier de har fanget deg.` : `${claims.length} lag sier de har fanget deg.`}
-      </h2>
-      <p className="type-body-m text-text-secondary">
-        {single
-          ? "Stemmer det? Fangsten teller først når du bekrefter. Svarer du ikke, avgjør spilleder."
-          : "Hvem tok deg først? Velg laget. Svarer du ikke, avgjør spilleder."}
-      </p>
-      {!single && claims.map((c) => (
-        <SelectRow
-          key={c.id}
-          title={c.team_name}
-          subtitle={`Registrert ${formatGameTime(c.registered_s)}`}
-          lead={<TeamDot color={c.team_color} size={20} />}
-          selected={c.id === selected}
-          onClick={() => setSelected(c.id)}
-        />
-      ))}
-      {error && <p className="type-body-s text-text-danger">{error}</p>}
-      <Button variant="danger" icon="check" block disabled={!choice || busy} onClick={() => respond(true)}>
-        {single ? "Ja, jeg er tatt" : selected ? `${claims.find((c) => c.id === selected)?.team_name} tok meg` : "Velg laget som tok deg"}
-      </Button>
-      <Button variant="secondary" block disabled={busy} onClick={() => respond(false)}>
-        {single ? "Nei, de bommet" : "Nei, ingen tok meg"}
-      </Button>
-    </Dialog>
   );
 }
 
@@ -281,11 +190,9 @@ export function AdminCatchQueue() {
       <h2 className="flex items-center gap-2 type-heading-m">Fangster <Badge tone="danger">{String(queue.length)}</Badge></h2>
       {error && <p className="type-body-s text-text-danger">{error}</p>}
       {queue.map((c) => (
-        <div key={c.id} className={`flex flex-col gap-2 rounded-lg border-2 border-border-strong p-3 ${c.status === "rejected" || c.overdue ? "bg-bg-warning-subtle" : "bg-bg-app"}`}>
+        <div key={c.id} className="flex flex-col gap-2 rounded-lg border-2 border-border-strong bg-bg-warning-subtle p-3">
           <div className="flex items-center justify-between gap-2">
-            <Badge tone={c.status === "rejected" ? "warning" : c.overdue ? "danger" : "neutral"}>
-              {c.status === "rejected" ? "Granny sier nei" : c.overdue ? "Ikke bekreftet" : "Venter på granny"}
-            </Badge>
+            <Badge tone="warning">Venter på deg</Badge>
             <span className="type-timer-s text-text-tertiary">reg. {formatGameTime(c.registered_s)}</span>
           </div>
           <p className="flex items-center gap-2 type-label-m">
@@ -293,7 +200,7 @@ export function AdminCatchQueue() {
           </p>
           {c.selfie_path
             ? <StoredPhoto path={c.selfie_path} className="max-h-64 w-full rounded-md object-contain" />
-            : <p className="type-body-s text-text-tertiary">Ingen selfie.</p>}
+            : <p className="type-body-s text-text-tertiary">Se bildet i lagets Telegram-gruppe.</p>}
           {c.competing > 1 && <p className="type-body-s text-text-secondary">{c.competing} lag krever henne. Den som teller, gjør de andre ugyldige.</p>}
           <div className="flex gap-2">
             <Button size="M" icon="check" className="flex-1" disabled={busy === c.id} onClick={() => resolve(c.id, true)}>Fangst teller</Button>

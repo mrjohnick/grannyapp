@@ -2,7 +2,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 set search_path = public, extensions;
-select plan(20);
+select plan(22);
 
 insert into auth.users (id, aud, role) values
   ('22222222-0000-0000-0000-000000000001', 'authenticated', 'authenticated'),  -- Lag Blå
@@ -49,31 +49,31 @@ select lives_ok($$ select public.register_catch('00000000-0000-0000-0000-0000000
 select throws_ok($$ select public.register_catch('00000000-0000-0000-0000-0000000000a9') $$,
   'P0001', 'Krever lisens', 'Rømlingen kan ikke fanges uten lisens');
 
--- Gerd ser begge kravene og velger Lag Rød.
+-- Gerd ser begge kravene, men bare spilleder kan godkjenne. Spilleder velger Lag Rød.
 select pg_temp.as_user('22222222-0000-0000-0000-000000000004');
 select is(jsonb_array_length(public.granny_pending_catches()), 2, 'Gerd ser to krav');
-select public.granny_respond_catch(
-  (select (c->>'id')::uuid from jsonb_array_elements(public.granny_pending_catches()) c where c->>'team_name' = 'Lag Rød'),
-  true);
+select throws_ok($$ select public.granny_respond_catch(null, true) $$, 'P0001', 'Spilleder godkjenner fangster', 'grannyen kan ikke godkjenne selv');
+select pg_temp.as_user('22222222-0000-0000-0000-000000000005');
+select public.admin_resolve_catch(
+  (select (q->>'id')::uuid from jsonb_array_elements(public.admin_catch_queue()) q where q->>'team_name' = 'Lag Rød'), true);
 
 select pg_temp.as_postgres();
-select is((select caught_by from public.grannies where name = 'Gerd'), '00000000-0000-0000-0000-0000000000b2'::uuid, 'Gerd er fanget av laget hun valgte');
+select is((select caught_by from public.grannies where name = 'Gerd'), '00000000-0000-0000-0000-0000000000b2'::uuid, 'Gerd er fanget av laget spilleder valgte');
 select is((select status::text from public.catches c join public.teams t on t.id = c.team_id where t.name = 'Lag Blå'), 'void', 'det andre kravet faller bort');
 select is(pg_temp.team_points('00000000-0000-0000-0000-0000000000b2'), 15, 'egen granny gir 15p');
 select is((select delta from public.points_ledger where reason = 'sladrehank'), 3, 'sladrehanken får 3p når målet fanges innen 10 min');
 select is((select count(*)::int from public.points_ledger where reason = 'honnorrabatt'), 0, 'honnørrabatten er fjernet');
 select is((select catch_order from public.grannies where name = 'Gerd'), 1, 'Gerd er fanget som nr. 1');
 
--- Astrid sier nei til Lag Blå, og spilleder avgjør.
+-- Lag Blå registrerer Astrid. Fangsten venter på spilleder.
 select pg_temp.as_user('22222222-0000-0000-0000-000000000001');
 select public.register_catch('00000000-0000-0000-0000-0000000000a1');
-select pg_temp.as_user('22222222-0000-0000-0000-000000000003');
-select public.granny_respond_catch(null, false);
 select pg_temp.as_user('22222222-0000-0000-0000-000000000005');
-select is((select q->>'status' from jsonb_array_elements(public.admin_catch_queue()) q where q->>'granny_name' = 'Astrid'), 'rejected', 'avvist fangst havner hos spilleder');
+select is((select q->>'status' from jsonb_array_elements(public.admin_catch_queue()) q where q->>'granny_name' = 'Astrid'), 'pending', 'fangsten venter hos spilleder');
+select ok(public.my_events() @> '[{"kind": "catch_pending"}]', 'spilleder får varsel om fangsten');
 select lives_ok($$ select public.admin_resolve_catch(
   (select (q->>'id')::uuid from jsonb_array_elements(public.admin_catch_queue()) q where q->>'granny_name' = 'Astrid'), true) $$,
-  'spilleder kan la fangsten telle');
+  'spilleder lar fangsten telle');
 select pg_temp.as_postgres();
 select is(pg_temp.team_points('00000000-0000-0000-0000-0000000000b1'), 15, 'Lag Blå får 15p for egen granny');
 select is((select catch_order from public.grannies where name = 'Astrid'), 2, 'Astrid er fanget som nr. 2');
@@ -95,8 +95,8 @@ select results_eq(
             ('admin_resolve_catch'), ('admin_reveal_granny'), ('admin_review_photo'), ('admin_review_quest'),
             ('admin_save_granny'), ('admin_save_quest'), ('admin_save_taxi'), ('admin_save_team'), ('admin_save_zone'),
             ('admin_set_avatar'), ('admin_set_status'), ('admin_setup'), ('admin_taxi_action'), ('admin_taxi_extra_ride'), ('admin_taxi_overview'), ('admin_telegram_alerts'), ('admin_telegram_stats'), ('admin_update_game'),
-            ('can_upload_photo'), ('can_view_photo'), ('game_seconds'), ('game_state'), ('game_summary'),
-            ('granny_cancel_taxi'), ('granny_map'), ('granny_pending_catches'), ('granny_request_taxi'),
+            ('can_upload_photo'), ('can_view_photo'), ('deliver_postkort'), ('deliver_quest'), ('game_seconds'), ('game_state'), ('game_summary'),
+            ('granny_cancel_taxi'), ('granny_map'), ('granny_pending_catches'), ('granny_quests'), ('granny_request_taxi'),
             ('granny_respond_catch'), ('granny_set_avatar'), ('granny_snitch'), ('granny_status'), ('i_am_romling'),
             ('int_array_is_sorted'), ('is_admin_of'), ('join_game'), ('last_ping_s'), ('me'), ('my_event_history'), ('my_events'),
             ('my_game_id'), ('my_granny_id'), ('my_role'), ('my_team_id'), ('my_telegram'), ('my_telegram_alerts'), ('next_ping_s'),

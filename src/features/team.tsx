@@ -6,33 +6,32 @@ import { formatGameTime } from "../lib/gameClock";
 import type { Coords } from "../lib/hooks";
 import type { TeamStatus } from "../lib/types";
 import { Badge, Button, Sheet, TeamDot } from "../components/ui";
-import { CameraCapture, StoredPhoto, uploadPhoto } from "./camera";
+import { StoredPhoto } from "./camera";
 
 const pos = (c: Coords | null) => ({ p_lat: c?.lat ?? null, p_lng: c?.lng ?? null, p_accuracy: c?.accuracy ?? null });
 
 // ---------------------------------------------------------------------------
 // Postkort
 // ---------------------------------------------------------------------------
-export function PostkortSheet({ status, gameS, gameId, coords, onClose, onDone }: {
+export function PostkortSheet({ status, gameS, coords, onClose, onDone }: {
   status: TeamStatus;
   gameS: number;
-  gameId: string;
   coords: Coords | null;
   onClose: () => void;
   onDone: (msg: string) => void;
 }) {
-  const [camera, setCamera] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const open = status.postcards.find((p) => gameS < p.closes_at_s && !p.won_by);
 
-  async function send(blob: Blob) {
-    const path = await uploadPhoto(gameId, blob);
-    const { error } = await supabase.rpc("submit_photo", { p_kind: "postkort", p_path: path, ...pos(coords) });
-    if (error) throw new Error(friendly(error) ?? "Noe gikk galt.");
-    onDone("Postkortet er sendt. Spilleder sjekker at hele laget er med.");
-  }
-
-  if (camera && open) {
-    return <CameraCapture title={`Postkort ${open.number}`} hint="Hele laget må være med" onSend={send} onClose={() => setCamera(false)} />;
+  async function deliver() {
+    if (!confirm("Marker postkortet som levert? Send gruppebildet i lagets Telegram-gruppe først.")) return;
+    setBusy(true);
+    setError(null);
+    const { error } = await supabase.rpc("deliver_postkort", pos(coords));
+    setBusy(false);
+    if (error) return setError(friendly(error) ?? "Noe gikk galt.");
+    onDone("Postkortet er levert. Spilleder sjekker bildet i Telegram.");
   }
 
   return (
@@ -50,15 +49,18 @@ export function PostkortSheet({ status, gameS, gameId, coords, onClose, onDone }
                 : <Badge tone="neutral">Borte</Badge>}
             </div>
             <p className="type-body-l">{p.mission}</p>
-            {p.my_status === "pending" && <p className="type-body-s text-text-secondary">Dere har sendt et bilde. Venter på spilleder.</p>}
-            {p.my_status === "rejected" && isOpen && <p className="type-body-s text-text-danger">Forrige bilde ble ikke godkjent. Prøv igjen.</p>}
+            {p.my_status === "pending" && <p className="type-body-s text-text-secondary">Levert. Venter på spilleder.</p>}
+            {p.my_status === "rejected" && isOpen && <p className="type-body-s text-text-danger">Ble ikke godkjent. Prøv igjen.</p>}
           </div>
         );
       })}
       {open && (
         <>
-          <p className="type-body-s text-text-tertiary">Stedet vises ikke på kartet. Første godkjente bilde gir 2p.</p>
-          <Button icon="camera" block onClick={() => setCamera(true)}>Ta gruppebilde</Button>
+          <p className="type-body-s text-text-tertiary">
+            Stedet vises ikke på kartet. Ta et gruppebilde der, send det i lagets Telegram-gruppe og marker som levert. Første godkjente gir 2p.
+          </p>
+          {error && <p className="rounded-md bg-bg-danger-subtle p-3 type-body-s text-text-danger">{error}</p>}
+          <Button icon="check" block disabled={busy} onClick={deliver}>Marker som levert</Button>
         </>
       )}
     </Sheet>

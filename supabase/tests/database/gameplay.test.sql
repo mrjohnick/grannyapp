@@ -81,8 +81,8 @@ select is((public.granny_status()->>'taxi_rides')::int, 1, 'appen teller taxitur
 select throws_ok($$ select public.granny_request_taxi() $$, 'P0001', 'Du har brukt opp taxiturene dine', 'én taxitur per granny');
 select ok(public.granny_map()->'markers' @> '[{"kind": "taxi", "name": "Taxi Test"}]', 'grannies ser taxien på kartet');
 select pg_temp.as_user('33333333-0000-0000-0000-000000000001');
-select ok(public.my_events() @> '[{"kind": "taxi", "title": "En granny har tatt taxi."}]', 'lagene får taxivarsel');
-select ok(public.team_map()->'markers' @> '[{"kind": "taxi", "name": null}]', 'lagene ser hentestedet, uten navn');
+select ok(public.my_events() @> '[{"kind": "taxi", "title": "Astrid har tatt taxi."}]', 'lagene får vite hvem som tok taxi');
+select ok(not public.team_map()->'markers' @> '[{"kind": "taxi"}]', 'men ikke hentestedet');
 select pg_temp.as_user('33333333-0000-0000-0000-000000000004');
 select ok(not (public.my_events() @> '[{"kind": "taxi"}]'), 'grannies får ikke taxivarselet');
 

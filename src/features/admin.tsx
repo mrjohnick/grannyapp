@@ -46,7 +46,7 @@ export function AdminPhotoQueue({ teams }: { teams: AdminLive["teams"] }) {
   if (photos.length === 0) return null;
   return (
     <section className="flex flex-col gap-2">
-      <h2 className="flex items-center gap-2 type-heading-m">Bilder <Badge tone="danger">{String(photos.length)}</Badge></h2>
+      <h2 className="flex items-center gap-2 type-heading-m">Postkort <Badge tone="danger">{String(photos.length)}</Badge></h2>
       {error && <p className="type-body-s text-text-danger">{error}</p>}
       {photos.map((p) => (
         <div key={p.id} className="flex flex-col gap-2 rounded-lg border-2 border-border-strong bg-bg-app p-3">
@@ -58,15 +58,17 @@ export function AdminPhotoQueue({ teams }: { teams: AdminLive["teams"] }) {
               {new Date(p.submitted_at).toLocaleTimeString("nb-NO", { hour: "2-digit", minute: "2-digit", second: "2-digit" })} · {formatGameTime(p.submitted_s)}
             </span>
           </div>
-          <StoredPhoto path={p.storage_path} className="max-h-80 w-full rounded-md object-contain" />
+          {p.storage_path
+            ? <StoredPhoto path={p.storage_path} className="max-h-80 w-full rounded-md object-contain" />
+            : <p className="type-body-s text-text-tertiary">Sjekk gruppebildet i lagets Telegram-gruppe.</p>}
           {p.kind === "postkort" ? (
             <>
               <p className="flex items-center gap-2 type-label-m">{p.team_color && <TeamDot color={p.team_color} />} {p.team_name}</p>
               <p className="type-body-s text-text-secondary">{p.mission}</p>
               <p className={`type-body-s ${p.distance_m != null && p.zone_radius_m != null && p.distance_m <= p.zone_radius_m + 25 ? "text-text-success" : "text-text-danger"}`}>
-                {p.distance_m == null ? "Ingen posisjon fulgte med." : `${Math.round(p.distance_m)} m fra stedet (radius ${p.zone_radius_m} m).`}
+                {p.distance_m == null ? "Ingen posisjon fulgte med." : `Levert ${Math.round(p.distance_m)} m fra stedet (radius ${p.zone_radius_m} m).`}
               </p>
-              {(p.competing ?? 0) > 1 && <p className="type-body-s text-text-warning">{p.competing} lag venter på dette postkortet. Godkjenn det som ble sendt først.</p>}
+              {(p.competing ?? 0) > 1 && <p className="type-body-s text-text-warning">{p.competing} lag venter på dette postkortet. Godkjenn det som ble levert først.</p>}
             </>
           ) : (
             <>

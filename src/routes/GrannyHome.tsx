@@ -7,18 +7,18 @@ import { useEventVersion } from "../lib/events";
 import { useFamilies } from "../lib/families";
 import { useDevicePosition, useInterval, useWakeLock } from "../lib/hooks";
 import { useZones } from "../lib/useZones";
-import { inZone } from "../lib/geo";
 import { GameMap, zoneMarkers } from "../map/GameMap";
 import { Badge, Button, Screen, TopBar } from "../components/ui";
 import { Icon } from "../components/Icon";
 import { PushChip } from "../components/PushChip";
 import { Avatar } from "../components/Avatar";
 import type { GrannyMap, GrannyStatus, MapMarker } from "../lib/types";
-import { CaughtCard, GrannyCatchDialog } from "../features/catch";
-import { GrannyPoints, PhotoSheet, SnitchSheet, TaxiSheet } from "../features/granny";
+import { CaughtCard } from "../features/catch";
+import { QuestSheet } from "../features/quests";
+import { GrannyPoints, SnitchSheet, TaxiSheet } from "../features/granny";
 import { CameraCapture, uploadPhoto } from "../features/camera";
 
-type Panel = "taxi" | "snitch" | "photo" | null;
+type Panel = "taxi" | "snitch" | "quests" | null;
 
 export function GrannyHome() {
   const { state, gameS, refresh } = useGame();
@@ -53,8 +53,6 @@ export function GrannyHome() {
   const [panel, setPanel] = useState<Panel>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
-  const bingo = zones.find((z) => z.kind === "bingo");
-  const inBingo = !!bingo && inZone(bingo, coords);
 
   const markers = useMemo<MapMarker[]>(() => {
     const list = zoneMarkers(zones);
@@ -131,7 +129,7 @@ export function GrannyHome() {
           {!granny.caught && state.status !== "ended" && (
             <div className="flex gap-3">
               {!granny.is_romling && (
-                <Button icon="camera" className="flex-1" disabled={!active || !status} onClick={() => setPanel("photo")}>Ta bilde</Button>
+                <Button icon="list" className="flex-1" disabled={!active || !status} onClick={() => setPanel("quests")}>Oppdrag</Button>
               )}
               <Button icon="taxi" variant="secondary" className={granny.is_romling ? "flex-1" : ""} disabled={!active || !status} onClick={() => setPanel("taxi")}>
                 Taxi
@@ -174,12 +172,9 @@ export function GrannyHome() {
             onClose={() => setPanel(null)}
             onDone={(s) => { setStatus(s); setPanel(null); setNotice("Du har sladret. Lagene ser hvor hun er nå."); load(); }} />
         )}
-        {panel === "photo" && status && (
-          <PhotoSheet status={status} gameS={gameS} gameId={state.game_id} coords={coords} inBingo={inBingo}
-            onClose={() => setPanel(null)}
-            onDone={(msg) => { setPanel(null); setNotice(msg); load(); }} />
+        {panel === "quests" && (
+          <QuestSheet role="granny" onClose={() => setPanel(null)} onChanged={load} />
         )}
-        {!granny.caught && <GrannyCatchDialog onResolved={refresh} />}
       </main>
     </Screen>
   );

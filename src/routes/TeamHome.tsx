@@ -185,11 +185,11 @@ export function TeamHome() {
           />
         )}
         {panel === "postkort" && status && (
-          <PostkortSheet status={status} gameS={gameS} gameId={state.game_id} coords={coords} onClose={() => setPanel(null)}
+          <PostkortSheet status={status} gameS={gameS} coords={coords} onClose={() => setPanel(null)}
             onDone={(msg) => { setPanel(null); setNotice(msg); loadStatus(); }} />
         )}
         {panel === "quests" && (
-          <QuestSheet gameId={state.game_id} onClose={() => setPanel(null)} onChanged={() => { loadQuests(); load(); }} />
+          <QuestSheet role="team" onClose={() => setPanel(null)} onChanged={() => { loadQuests(); load(); }} />
         )}
         {panel === "score" && status && <ScoreSheet status={status} teamId={team.id} onClose={() => setPanel(null)} />}
         {albumPhoto && status && (

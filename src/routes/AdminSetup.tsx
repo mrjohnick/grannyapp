@@ -18,11 +18,10 @@ const COLORS: Array<[TeamColor, string]> = [
   ["turkis", "Turkis"], ["bla", "Blå"], ["marine", "Marine"], ["rosa", "Rosa"], ["brun", "Brun"],
 ];
 const ZONE_KINDS: Array<[Zone["kind"], string, number]> = [
-  ["bingo", "Bingo", 30], ["postkort", "Postkort", 40],
+  ["postkort", "Postkort", 40],
 ];
 const RULES: Array<[string, string, "min" | "s" | "m"]> = [
   ["taxi_max_rides", "Taxiturer per granny", "m"],
-  ["taxi_pickup_show_s", "Hentested vises i (min)", "min"],
   ["taxi_driver_timeout_s", "Taxi uten svar gis videre etter (min)", "min"],
   ["taxi_ride_max_s", "Maks tid i taxi (min, 0 = ingen grense)", "min"],
   ["catch_points_bonus", "Bonus-granny, poeng", "m"],
@@ -329,7 +328,7 @@ function Codes({ data }: { data: SetupData }) {
 function toDraft(z?: SetupData["zones"][number]): DraftZone {
   const p = z?.geojson.type === "Point" ? z.geojson.coordinates : null;
   return {
-    id: z?.id ?? null, kind: z?.kind ?? "bingo", label: z?.label ?? "", number: z?.number != null ? String(z.number) : "",
+    id: z?.id ?? null, kind: z?.kind ?? "postkort", label: z?.label ?? "", number: z?.number != null ? String(z.number) : "",
     radius: z?.radius_m != null ? String(z.radius_m) : "30",
     opens: z?.opens_at_s != null ? formatGameTime(z.opens_at_s) : "", closes: z?.closes_at_s != null ? formatGameTime(z.closes_at_s) : "",
     mission: z?.mission ?? "", lat: p ? p[1] : null, lng: p ? p[0] : null,
