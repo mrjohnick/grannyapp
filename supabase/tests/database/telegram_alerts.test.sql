@@ -47,7 +47,7 @@ select pg_temp.as_postgres();
 select is(public.telegram_start('vfinnesikke', 1, 1)->>'ok', 'false', 'ukjent token avvises');
 select is(public.telegram_start(
   (select link_token from public.player_telegram where user_id = '66666666-0000-0000-0000-000000000001'), 111, 111),
-  '{"ok": true, "kind": "player", "name": "Lag Blå"}'::jsonb, 'laget kobles');
+  '{"ok": true, "kind": "player", "name": "Lag Blå", "role": "team"}'::jsonb, 'laget kobles');
 
 select pg_temp.as_user('66666666-0000-0000-0000-000000000001');
 select is((public.my_telegram_alerts()->>'linked')::boolean, true, 'appen ser at laget er koblet');

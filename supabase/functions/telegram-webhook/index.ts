@@ -1,6 +1,6 @@
 // Telegram-webhook for GrannyBot.
 //
-// Grannyene deler live-posisjon med boten i privat chat. Telegram sender
+// Grannyene (og taxiene) deler live-posisjon med boten i privat chat. Telegram sender
 // første posisjon som `message` og hver oppdatering som `edited_message`.
 // Vi lagrer alle som posisjoner med kilde «telegram».
 //
@@ -63,6 +63,9 @@ type TgUpdate = {
 const TEXT = {
   linked: (name: string) =>
     `Hei, ${name}! Nå: trykk ⊕ → Posisjon → «Del live-posisjon» → «Til jeg slår det av». Del bare her, aldri i lag-gruppa. Varslene fra spillet kommer også her.`,
+  taxiLinked: (name: string | null) =>
+    `Hei${name ? `, ${name}` : ""}! Varslene fra spillet kommer her. Del også live-posisjon her: trykk ⊕ → Posisjon → «Del live-posisjon» → «Til jeg slår det av». Da ser grannyene taxien selv når appen er lukket.`,
+  taxiLive: "Takk! Grannyene ser taxien din, også når appen er lukket. Ikke sveip bort Telegram – da stopper delingen.",
   alertsLinked: (name: string | null) =>
     `Hei${name ? `, ${name}` : ""}! Nå får du varslene fra spillet her, også når mobilen er låst. Skriv /stopp for å slå dem av.`,
   muted: "Varslene er slått av. Skriv /start for å slå dem på igjen.",
@@ -111,7 +114,8 @@ async function handle(update: TgUpdate) {
     });
     if (error) throw error;
     if (!data?.ok) return reply(msg.chat.id, TEXT.badToken);
-    return reply(msg.chat.id, data.kind === "granny" ? TEXT.linked(data.name) : TEXT.alertsLinked(data.name));
+    if (data.kind === "granny") return reply(msg.chat.id, TEXT.linked(data.name));
+    return reply(msg.chat.id, data.role === "taxi" ? TEXT.taxiLinked(data.name) : TEXT.alertsLinked(data.name));
   }
 
   if (msg.text?.startsWith("/stopp") || msg.text?.startsWith("/stop")) {
@@ -134,7 +138,8 @@ async function handle(update: TgUpdate) {
     // Svar bare på første melding, ikke på hver oppdatering.
     if (isEdit) return;
     if (!data?.ok) return reply(msg.chat.id, TEXT.notLinked);
-    return reply(msg.chat.id, data.is_live ? TEXT.live : TEXT.notLive);
+    if (!data.is_live) return reply(msg.chat.id, TEXT.notLive);
+    return reply(msg.chat.id, data.kind === "taxi" ? TEXT.taxiLive : TEXT.live);
   }
 
   if (isEdit) return;

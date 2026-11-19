@@ -8,7 +8,7 @@ import { Icon } from "./Icon";
 
 export const TELEGRAM_BOT = (import.meta.env.VITE_TELEGRAM_BOT_USERNAME as string | undefined) ?? "GrannyBot";
 
-type Status = { link_token: string; linked: boolean };
+type Status = { link_token: string; linked: boolean; last_position_age_s?: number | null };
 
 function useTelegramAlerts() {
   const [status, setStatus] = useState<Status | null>(null);
@@ -109,5 +109,37 @@ export function AdminTelegramAlerts() {
         ))}
       </ul>
     </section>
+  );
+}
+
+/**
+ * Taxi: koble til boten og del live-posisjon der. Da ser grannyene taxien
+ * også når appen er lukket eller sjåføren bruker et navigasjonsprogram.
+ */
+export function TaxiTelegramCard() {
+  const status = useTelegramAlerts();
+  if (!status) return null;
+  const age = status.last_position_age_s;
+  const live = status.linked && age != null && age < 120;
+  if (live) {
+    return (
+      <span className="flex items-center gap-1 rounded-full border border-border-strong bg-bg-success-subtle px-3 py-1 type-label-s">
+        <Icon name="send" size={16} /> Telegram live · {age} s
+      </span>
+    );
+  }
+  return (
+    <a href={status.linked ? `https://t.me/${TELEGRAM_BOT}` : link(status)} target="_blank" rel="noreferrer"
+      className="flex w-full max-w-sm items-center gap-3 rounded-lg border-2 border-border-strong bg-bg-warning p-3 shadow-hard">
+      <Icon name="send" size={24} />
+      <span className="flex-1">
+        <span className="block type-label-m">{status.linked ? "Del live-posisjon i Telegram" : "Koble til Telegram"}</span>
+        <span className="block type-body-s">
+          {status.linked
+            ? "I chatten med boten: ⊕ → Posisjon → «Del live-posisjon» → «Til jeg slår det av». Da ser grannyene deg selv når appen er lukket."
+            : "Få varsler og del posisjonen med boten, så grannyene ser taxien selv når appen er lukket."}
+        </span>
+      </span>
+    </a>
   );
 }
