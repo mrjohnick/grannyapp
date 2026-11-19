@@ -3,7 +3,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 set search_path = public, extensions;
-select plan(18);
+select plan(20);
 
 insert into auth.users (id, aud, role) values
   ('66666666-0000-0000-0000-000000000001', 'authenticated', 'authenticated'),  -- Lag Blå
@@ -51,6 +51,9 @@ select is(public.telegram_start(
 
 select pg_temp.as_user('66666666-0000-0000-0000-000000000001');
 select is((public.my_telegram_alerts()->>'linked')::boolean, true, 'appen ser at laget er koblet');
+select pg_temp.as_postgres();
+select is(public.telegram_status(111), '{"linked": true, "muted": false, "names": ["Lag Blå"]}'::jsonb, 'boten vet at kontoen er koblet til Lag Blå');
+select is(public.telegram_status(999)->>'linked', 'false', 'ukjent konto er ikke koblet');
 
 select pg_temp.as_user('66666666-0000-0000-0000-000000000002');
 select is(public.my_telegram_alerts()->>'link_token', 'test-astrid', 'grannyen bruker samme lenke som for posisjon (fra seed)');

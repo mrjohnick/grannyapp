@@ -66,6 +66,9 @@ const TEXT = {
   alertsLinked: (name: string | null) =>
     `Hei${name ? `, ${name}` : ""}! Nå får du varslene fra spillet her, også når mobilen er låst. Skriv /stopp for å slå dem av.`,
   muted: "Varslene er slått av. Skriv /start for å slå dem på igjen.",
+  connected: (names: string[]) =>
+    `Du er koblet til${names.length ? ` som ${names.join(" og ")}` : ""}. Varslene fra spillet kommer her. Skriv /stopp for å slå dem av.`,
+  connectedMuted: "Du er koblet til, men varslene er slått av. Skriv /start for å slå dem på igjen.",
   unmuted: "Varslene er på igjen.",
   badToken: "Den lenken kjenner jeg ikke igjen. Åpne den på nytt fra appen.",
   notLinked: "Jeg vet ikke hvem du er ennå. Åpne lenken fra appen først.",
@@ -134,7 +137,12 @@ async function handle(update: TgUpdate) {
     return reply(msg.chat.id, data.is_live ? TEXT.live : TEXT.notLive);
   }
 
-  if (!isEdit) return reply(msg.chat.id, TEXT.help);
+  if (isEdit) return;
+  // Alt annet (tekst, bilder osv.): si fra om kontoen er koblet til, ellers hjelp.
+  const { data, error } = await supabase.rpc("telegram_status", { p_user_id: msg.from.id });
+  if (error) throw error;
+  if (!data?.linked) return reply(msg.chat.id, TEXT.help);
+  return reply(msg.chat.id, data.muted ? TEXT.connectedMuted : TEXT.connected(data.names ?? []));
 }
 
 Deno.serve(async (req) => {
