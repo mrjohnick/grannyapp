@@ -103,7 +103,7 @@ select results_eq(
             ('register_catch'), ('report_position'), ('save_push_subscription'), ('submit_photo'), ('submit_quest'),
             ('taxi_accept_next'), ('taxi_dropoff'), ('taxi_pickup'), ('taxi_queue'), ('taxi_release'), ('team_catches'),
             ('team_has_license'), ('team_map'), ('team_nabovakt'), ('team_quests'), ('team_romling_guess'),
-            ('team_status'), ('team_use_ability'), ('zone_visible')) x(v) $$,
+            ('team_status'), ('team_use_ability'), ('use_team_ability'), ('zone_visible')) x(v) $$,
   'bare tillatte funksjoner kan kalles av klienter');
 
 select * from finish();

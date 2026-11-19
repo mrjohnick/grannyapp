@@ -71,6 +71,8 @@ export type TeamMap = {
     live_reason: "sladret" | "spilleder" | "evne" | "utenfor" | "bingo" | null;
     /** Posisjonen er fra en sladring (en ekstra ping), ikke fra en vanlig ping. */
     snitched?: boolean;
+    /** Posisjonen er fra lagets egen ping-evne. */
+    team_pinged?: boolean;
     busy?: boolean;
     lat: number;
     lng: number;
@@ -323,12 +325,18 @@ export type Quest = {
   description: string | null;
   reward_points: number;
   reward_abilities: number;
+  reward_ability_kind?: AbilityKind;
   closed: boolean;
 };
+
+/** Evner i lagets sekk (se use_team_ability). */
+export type AbilityKind = "ping_one" | "ping_all" | "ping_bonus" | "live";
 
 export type TeamQuests = {
   abilities_left: number;
   ability_live_s: number;
+  /** Ubrukte evner per type. Finnes bare for lag. */
+  abilities?: Record<AbilityKind, number>;
   quests: Array<Quest & { status: "pending" | "approved" | "rejected" | null; note: string | null }>;
 };
 

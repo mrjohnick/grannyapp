@@ -6,14 +6,16 @@ import { friendly } from "../lib/errors";
 import { useInterval } from "../lib/hooks";
 import { useEventVersion } from "../lib/events";
 import { formatGameTime } from "../lib/gameClock";
-import type { AdminLive, AdminQuest, QuestSubmission, TeamQuests } from "../lib/types";
+import type { AbilityKind, AdminLive, AdminQuest, QuestSubmission, TeamQuests } from "../lib/types";
+import { ABILITY_TEXT } from "./abilities";
 import { Badge, Button, Sheet, TeamDot } from "../components/ui";
 import { StoredMedia } from "./camera";
 
 const field = "h-11 w-full rounded-sm border border-border-strong bg-bg-surface px-3 type-body-m";
 
-function rewardText(points: number) {
-  return `${points}p`;
+function rewardText(points: number, abilities = 0, kind?: AbilityKind) {
+  return [points > 0 ? `${points}p` : null, abilities > 0 && kind ? `${abilities} × ${ABILITY_TEXT[kind].title.toLowerCase()}` : null]
+    .filter(Boolean).join(" + ");
 }
 
 // ---------------------------------------------------------------------------
@@ -64,7 +66,7 @@ export function QuestSheet({ role, onClose, onChanged }: {
           <div key={q.id} className="flex flex-col gap-2 rounded-lg border-2 border-border-strong p-3">
             <div className="flex items-start justify-between gap-2">
               <span className="type-label-l">{q.title}</span>
-              <Badge tone="brand">{rewardText(q.reward_points)}</Badge>
+              <Badge tone="brand">{rewardText(q.reward_points, q.reward_abilities, q.reward_ability_kind)}</Badge>
             </div>
             {q.description && <p className="type-body-s text-text-secondary">{q.description}</p>}
             {q.status === "pending" && <Badge tone="warning">Levert – venter på spilleder</Badge>}
@@ -93,6 +95,8 @@ export function AdminQuests({ live }: { live: AdminLive | null }) {
   const [points, setPoints] = useState("3");
   // «teams», «grannies», «team:<id>» eller «granny:<id>»
   const [target, setTarget] = useState("teams");
+  const [abilityKind, setAbilityKind] = useState<AbilityKind | "">("");
+  const [abilityCount, setAbilityCount] = useState("1");
   const [msg, setMsg] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -110,7 +114,9 @@ export function AdminQuests({ live }: { live: AdminLive | null }) {
     const toGrannies = kind === "grannies" || kind === "granny";
     const { error } = await supabase.rpc("admin_save_quest", {
       p_id: null, p_title: title, p_description: description, p_points: Number(points) || 0,
-      p_abilities: 0, p_team: kind === "team" ? id : null, p_granny: kind === "granny" ? id : null,
+      p_abilities: !toGrannies && abilityKind ? Number(abilityCount) || 0 : 0,
+      p_ability_kind: abilityKind || "live",
+      p_team: kind === "team" ? id : null, p_granny: kind === "granny" ? id : null,
       p_audience: toGrannies ? "grannies" : "teams",
     });
     setBusy(false);
@@ -132,9 +138,24 @@ export function AdminQuests({ live }: { live: AdminLive | null }) {
         <input className={field} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Tittel, f.eks. «Syng for en fremmed»" maxLength={80} />
         <textarea className={`${field} h-16 py-2`} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Hva skal de gjøre? (valgfritt)" maxLength={400} />
         <div className="flex gap-2">
-          <label className="flex flex-1 flex-col gap-1 type-label-s">Poeng
+          <label className="flex w-20 flex-col gap-1 type-label-s">Poeng
             <input className={field} inputMode="numeric" value={points} onChange={(e) => setPoints(e.target.value)} />
           </label>
+          {!target.startsWith("granny") && (
+            <>
+              <label className="flex flex-1 flex-col gap-1 type-label-s">Evne (til lag)
+                <select className={field} value={abilityKind} onChange={(e) => setAbilityKind(e.target.value as AbilityKind | "")}>
+                  <option value="">Ingen</option>
+                  {(Object.keys(ABILITY_TEXT) as AbilityKind[]).map((k) => <option key={k} value={k}>{ABILITY_TEXT[k].title}</option>)}
+                </select>
+              </label>
+              {abilityKind && (
+                <label className="flex w-16 flex-col gap-1 type-label-s">Antall
+                  <input className={field} inputMode="numeric" value={abilityCount} onChange={(e) => setAbilityCount(e.target.value)} />
+                </label>
+              )}
+            </>
+          )}
         </div>
         <select className={field} value={target} onChange={(e) => setTarget(e.target.value)}>
           <option value="teams">Alle lag</option>
@@ -155,7 +176,7 @@ export function AdminQuests({ live }: { live: AdminLive | null }) {
           {quests.map((q) => (
             <li key={q.id} className={`flex items-start gap-2 rounded-md px-2 py-1 ${q.closed ? "opacity-50" : ""}`}>
               <div className="flex-1">
-                <div className="type-label-s">{q.title} <span className="font-normal text-text-secondary">· {rewardText(q.reward_points)} · {q.team_name ? `bare ${q.team_name}` : q.granny_name ? `bare ${q.granny_name}` : q.audience === "grannies" ? "alle grannies" : "alle lag"}</span></div>
+                <div className="type-label-s">{q.title} <span className="font-normal text-text-secondary">· {rewardText(q.reward_points, q.reward_abilities, q.reward_ability_kind)} · {q.team_name ? `bare ${q.team_name}` : q.granny_name ? `bare ${q.granny_name}` : q.audience === "grannies" ? "alle grannies" : "alle lag"}</span></div>
                 <div className="type-body-s text-text-tertiary">
                   {q.approved_teams.length > 0 ? `Løst av ${q.approved_teams.join(", ")}` : "Ingen har løst det ennå"}
                   {q.pending > 0 ? ` · ${q.pending} venter` : ""}

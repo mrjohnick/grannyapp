@@ -9,7 +9,7 @@ const MORE: Record<string, string> = {
   "Punktet er brukt": "Dere kan bruke hvert punkt én gang i timen.",
   "Vent til neste forsøk": "Dere kan prøve igjen hvert 20. minutt.",
   "Vi vet ikke hvor hun er ennå": "Vi vet ikke hvor hun er ennå. Velg en annen. Sladringen din er ikke brukt.",
-  "Gi poeng, en evne eller begge": "Gi oppdraget minst 1 poeng.",
+  "Gi poeng, en evne eller begge": "Gi oppdraget poeng, en evne eller begge.",
 };
 
 // Koder vi selv bruker i RPC-ene (raise exception … using errcode).

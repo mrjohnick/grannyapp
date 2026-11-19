@@ -13,12 +13,13 @@ import { Icon, type IconName } from "../components/Icon";
 import { PushChip } from "../components/PushChip";
 import { TelegramChip } from "../components/TelegramAlerts";
 import { formatCountdown, formatGameTime } from "../lib/gameClock";
-import type { MapMarker, TeamMap, TeamStatus } from "../lib/types";
+import type { MapMarker, TeamMap, TeamQuests, TeamStatus } from "../lib/types";
 import { TeamCatchSheet, TeamCatchStatus } from "../features/catch";
 import { QuestSheet } from "../features/quests";
+import { AbilitySheet, abilityCount } from "../features/abilities";
 import { AlbumRevealSheet, markAlbumSeen, ScoreSheet, unseenAlbumPhoto } from "../features/team";
 
-type Panel = "catch" | "score" | "quests" | null;
+type Panel = "catch" | "score" | "quests" | "abilities" | null;
 
 const LIVE_TEXT = { sladret: "sladret på", spilleder: "vist av spilleder", evne: "deres evne", utenfor: "utenfor området", bingo: "Bingo" } as const;
 
@@ -38,11 +39,13 @@ export function TeamHome() {
   const [notice, setNotice] = useState<string | null>(null);
   const { tagOf, avatarOf } = useFamilies();
   const [quests, setQuests] = useState(0);
+  const [abilities, setAbilities] = useState(0);
   const loadQuests = useCallback(async () => {
     const { data } = await supabase.rpc("team_quests");
     if (!data) return;
-    const q = data as { quests: Array<{ status: string | null; closed: boolean }> };
+    const q = data as TeamQuests;
     setQuests(q.quests.filter((x) => !x.closed && x.status !== "approved" && x.status !== "pending").length);
+    setAbilities(abilityCount(q));
   }, []);
 
   const load = useCallback(async () => {
@@ -85,6 +88,7 @@ export function TeamHome() {
       const label = m.kind === "romling" ? "???"
         : m.kind === "anonym" ? "Noen sladret"
         : m.live_reason ? `${who} · ${LIVE_TEXT[m.live_reason]}`
+        : m.team_pinged ? `${who} · deres ping ${formatGameTime(m.at_s)}`
         : m.snitched ? `${who} · sladret ${formatGameTime(m.at_s)}` : who;
       list.push({ key: m.id ?? `${m.kind}-${m.at_s}`, kind: m.kind, lat: m.lat, lng: m.lng, label,
         avatarUrl: m.kind === "romling" ? null : avatarOf(m.id), bonus: tagOf(m.id)?.kind === "bonus" });
@@ -99,6 +103,7 @@ export function TeamHome() {
 
   const actions: Array<{ key: Panel; icon: IconName; label: string; badge?: string; hot?: boolean; show: boolean }> = [
     { key: "quests", icon: "list", label: "Quests", badge: quests > 0 ? String(quests) : undefined, show: true },
+    { key: "abilities", icon: "eye", label: "Evner", badge: abilities > 0 ? String(abilities) : undefined, hot: abilities > 0, show: true },
     { key: "score", icon: "trophy", label: status ? `${status.points}p` : "Poeng", show: true },
   ];
 
@@ -181,6 +186,10 @@ export function TeamHome() {
             onClose={() => setPanel(null)}
             onRegistered={() => { setPanel(null); setCatchKey((k) => k + 1); load(); }}
           />
+        )}
+        {panel === "abilities" && (
+          <AbilitySheet onClose={() => setPanel(null)}
+            onUsed={(msg) => { setPanel(null); setNotice(msg); loadQuests(); load(); }} />
         )}
         {panel === "quests" && (
           <QuestSheet role="team" onClose={() => setPanel(null)} onChanged={() => { loadQuests(); load(); }} />

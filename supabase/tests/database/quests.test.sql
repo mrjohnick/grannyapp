@@ -92,7 +92,7 @@ values ('00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-0000000
 select pg_temp.as_user('55555555-0000-0000-0000-000000000001');
 select lives_ok($$ select public.team_use_ability('00000000-0000-0000-0000-0000000000a5') $$, 'laget bruker evnen på bonus-grannyen');
 select ok(public.team_map()->'markers' @> '[{"name": "Bonusbestemor", "live_reason": "evne"}]', 'laget ser henne live');
-select throws_ok($$ select public.team_use_ability('00000000-0000-0000-0000-0000000000a5') $$, 'P0001', 'Dere har ingen evner igjen', 'evnen er brukt opp');
+select throws_ok($$ select public.team_use_ability('00000000-0000-0000-0000-0000000000a5') $$, 'P0001', 'Dere har ingen slike evner igjen', 'evnen er brukt opp');
 select pg_temp.as_user('55555555-0000-0000-0000-000000000004');
 select ok(not (public.team_map()->'markers' @> '[{"live_reason": "evne"}]'), 'andre lag ser henne ikke');
 
