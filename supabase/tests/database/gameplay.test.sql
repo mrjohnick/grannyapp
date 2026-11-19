@@ -203,15 +203,15 @@ select is((select count(*)::int from public.events where kind = 'postkort_open')
 
 -- Slutt
 select pg_temp.as_user('33333333-0000-0000-0000-000000000001');
-select throws_ok($$ select public.game_summary() $$, 'P0001', 'Oppsummeringen kommer når spillet er over', 'ingen oppsummering for lag før slutt');
+select throws_ok($$ select public.game_summary() $$, '42501', 'Bare spilleder ser resultatet', 'lag ser ikke poengtavlen under spillet');
 select pg_temp.as_postgres();
 insert into public.taxi_rides (game_id, granny_id, at_s)
 select '00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-0000000000a3', x from unnest('{1000,3000,5000}'::int[]) x;
 select pg_temp.at(9100); select public.tick_games();
 select is((select status::text from public.games where id = '00000000-0000-0000-0000-000000000001'), 'ended', 'spillet slutter av seg selv 2:30');
 select is((select count(*)::int from public.points_ledger where reason = 'honnorrabatt'), 0, 'ingen honnørrabatt ved slutt');
-select pg_temp.as_user('33333333-0000-0000-0000-000000000001');
-select ok(public.game_summary()->'snitches' @> '[{"snitch": "Astrid", "target": "Gerd"}]', 'oppsummeringen avslører sladrehanken');
+select pg_temp.as_user('33333333-0000-0000-0000-000000000005');
+select ok(public.game_summary()->'snitches' @> '[{"snitch": "Astrid", "target": "Gerd"}]', 'oppsummeringen avslører sladrehanken (for spilleder)');
 
 select * from finish();
 rollback;

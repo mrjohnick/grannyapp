@@ -1,5 +1,6 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { supabase } from "./supabase";
+import { useGame } from "./game";
 import { useInterval } from "./hooks";
 import type { Zone } from "./types";
 
@@ -12,5 +13,8 @@ export function useZones() {
     if (!error && data) setZones(data as Zone[]);
   }, []);
   useInterval(load, 60_000);
+  // Hent med en gang når spilleder endrer sonene (data_version øker).
+  const { state } = useGame();
+  useEffect(() => { load(); }, [state.data_version, load]);
   return zones;
 }

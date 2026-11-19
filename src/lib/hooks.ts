@@ -4,7 +4,7 @@ import { currentGameSeconds } from "./gameClock";
 import type { GameState } from "./types";
 
 /** Henter spilltilstand fra serveren og teller klokka lokalt mellom hentingene. */
-export function useGameState(refreshMs = 20_000) {
+export function useGameState(refreshMs = 10_000) {
   const [state, setState] = useState<GameState | null>(null);
   const [fetchedAt, setFetchedAt] = useState(0);
   const [error, setError] = useState<string | null>(null);

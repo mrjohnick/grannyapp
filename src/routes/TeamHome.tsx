@@ -1,6 +1,5 @@
 // L1 · Kart (letelag), L2 fangst, oppgaver. Blindhet er tatt ut av spillet; visningen under er sovende.
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { useGame } from "../lib/game";
 import { useEventVersion } from "../lib/events";
@@ -17,7 +16,7 @@ import type { MapMarker, TeamMap, TeamQuests, TeamStatus } from "../lib/types";
 import { TeamCatchSheet, TeamCatchStatus } from "../features/catch";
 import { QuestSheet } from "../features/quests";
 import { AbilitySheet, abilityCount } from "../features/abilities";
-import { AlbumRevealSheet, markAlbumSeen, ScoreSheet, unseenAlbumPhoto } from "../features/team";
+import { ScoreSheet } from "../features/team";
 
 type Panel = "catch" | "score" | "quests" | "abilities" | null;
 
@@ -71,8 +70,6 @@ export function TeamHome() {
 
   const blindUntil = map?.blind_until_s ?? team.blind_until_s;
   const blind = blindUntil != null && blindUntil > gameS;
-  // Når blindheten er over, viser vi bildet som blindet laget (én gang per bilde).
-  const albumPhoto = blind || panel ? null : unseenAlbumPhoto(status, team.id);
 
   const markers = useMemo<MapMarker[]>(() => {
     if (blind) return [];
@@ -155,7 +152,10 @@ export function TeamHome() {
           </div>
           <TeamCatchStatus refreshKey={catchKey} />
           {state.status === "ended" ? (
-            <Link to="/oppsummering" className="block w-full"><Button icon="trophy" block>Se oppsummeringen</Button></Link>
+            <div className="w-full rounded-lg border-2 border-border-strong bg-bg-surface p-4 shadow-hard">
+              <div className="type-heading-m">Spillet er over</div>
+              <p className="type-body-s text-text-secondary">Takk for jakten! Spilleder kårer vinnerne.</p>
+            </div>
           ) : (
             <>
               <div className="grid w-full gap-2" style={{ gridTemplateColumns: `repeat(${actions.filter((a) => a.show).length}, minmax(0, 1fr))` }}>
@@ -194,10 +194,7 @@ export function TeamHome() {
         {panel === "quests" && (
           <QuestSheet role="team" onClose={() => setPanel(null)} onChanged={() => { loadQuests(); load(); }} />
         )}
-        {panel === "score" && status && <ScoreSheet status={status} teamId={team.id} onClose={() => setPanel(null)} />}
-        {albumPhoto && status && (
-          <AlbumRevealSheet photo={albumPhoto} onClose={() => { markAlbumSeen(status, team.id); setStatus({ ...status }); }} />
-        )}
+        {panel === "score" && status && <ScoreSheet status={status} onClose={() => setPanel(null)} />}
       </main>
     </Screen>
   );

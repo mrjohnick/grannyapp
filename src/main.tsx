@@ -11,7 +11,8 @@ import { TeamHome } from "./routes/TeamHome";
 import { TaxiHome } from "./routes/TaxiHome";
 import { AdminLive } from "./routes/AdminLive";
 import { AdminSetup } from "./routes/AdminSetup";
-import { Summary } from "./routes/Summary";
+import { AdminShell } from "./routes/admin/AdminShell";
+import { AdminMessagesPage, AdminPeoplePage, AdminPointsPage, AdminQuestsPage, AdminTaxiPage } from "./routes/admin/pages";
 
 // Profilfontene (lisensierte) lastes bare når de finnes. Ellers brukes reservefontene.
 const brandFonts = import.meta.env.VITE_BRAND_FONTS_URL as string | undefined;
@@ -33,9 +34,18 @@ createRoot(document.getElementById("root")!).render(
         <Route path="/granny" element={<GameProvider role="granny"><GrannyHome /></GameProvider>} />
         <Route path="/lag" element={<GameProvider role="team"><TeamHome /></GameProvider>} />
         <Route path="/taxi" element={<GameProvider role="taxi"><TaxiHome /></GameProvider>} />
-        <Route path="/leder" element={<GameProvider role="admin"><AdminLive /></GameProvider>} />
-        <Route path="/leder/oppsett" element={<GameProvider role="admin"><AdminSetup /></GameProvider>} />
-        <Route path="/oppsummering" element={<GameProvider><Summary /></GameProvider>} />
+        {/* Spilleder: én ramme med meny, og én side per oppgave. */}
+        <Route path="/leder" element={<GameProvider role="admin"><AdminShell /></GameProvider>}>
+          <Route index element={<AdminLive />} />
+          <Route path="oppdrag" element={<AdminQuestsPage />} />
+          <Route path="taxi" element={<AdminTaxiPage />} />
+          <Route path="poeng" element={<AdminPointsPage />} />
+          <Route path="meldinger" element={<AdminMessagesPage />} />
+          <Route path="deltakere" element={<AdminPeoplePage />} />
+          <Route path="oppsett" element={<AdminSetup />} />
+        </Route>
+        {/* Oppsummeringen er nå spilleders Poeng-side. */}
+        <Route path="/oppsummering" element={<Navigate to="/leder/poeng" replace />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>

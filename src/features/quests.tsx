@@ -5,7 +5,8 @@ import { supabase } from "../lib/supabase";
 import { friendly } from "../lib/errors";
 import { useInterval } from "../lib/hooks";
 import { useEventVersion } from "../lib/events";
-import { formatGameTime } from "../lib/gameClock";
+import { formatCountdown, formatGameTime } from "../lib/gameClock";
+import { useGame } from "../lib/game";
 import type { AbilityKind, AdminLive, AdminQuest, QuestSubmission, TeamQuests } from "../lib/types";
 import { ABILITY_TEXT } from "./abilities";
 import { Badge, Button, Sheet, TeamDot } from "../components/ui";
@@ -27,6 +28,7 @@ export function QuestSheet({ role, onClose, onChanged }: {
   onChanged: () => void;
 }) {
   const { version } = useEventVersion();
+  const { gameS } = useGame();
   const [data, setData] = useState<TeamQuests | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
@@ -61,7 +63,9 @@ export function QuestSheet({ role, onClose, onChanged }: {
       {data === null && <p className="type-body-m text-text-tertiary">Henter oppdrag …</p>}
       {data?.quests.length === 0 && <p className="type-body-m text-text-secondary">Ingen oppdrag ennå. Spilleder sender dem underveis.</p>}
       {data?.quests.map((q) => {
-        const open = !q.closed && q.status !== "pending" && q.status !== "approved";
+        const left = q.deadline_s != null ? q.deadline_s - gameS : null;
+        const expired = left != null && left <= 0;
+        const open = !q.closed && !expired && q.status !== "pending" && q.status !== "approved";
         return (
           <div key={q.id} className="flex flex-col gap-2 rounded-lg border-2 border-border-strong p-3">
             <div className="flex items-start justify-between gap-2">
@@ -69,6 +73,11 @@ export function QuestSheet({ role, onClose, onChanged }: {
               <Badge tone="brand">{rewardText(q.reward_points, q.reward_abilities, q.reward_ability_kind)}</Badge>
             </div>
             {q.description && <p className="type-body-s text-text-secondary">{q.description}</p>}
+            {left != null && q.status !== "approved" && q.status !== "pending" && (
+              <p className={`type-label-s ${expired || left <= 120 ? "text-text-danger" : "text-text-secondary"}`}>
+                {expired ? "Fristen er ute" : `Frist om ${formatCountdown(left)}`}
+              </p>
+            )}
             {q.status === "pending" && <Badge tone="warning">Levert – venter på spilleder</Badge>}
             {q.status === "approved" && <Badge tone="success">Godkjent</Badge>}
             {q.status === "rejected" && <p className="type-body-s text-text-danger">Ikke godkjent{q.note ? `: ${q.note}` : ""}. Prøv igjen.</p>}
@@ -97,6 +106,8 @@ export function AdminQuests({ live }: { live: AdminLive | null }) {
   const [target, setTarget] = useState("teams");
   const [abilityKind, setAbilityKind] = useState<AbilityKind | "">("");
   const [abilityCount, setAbilityCount] = useState("1");
+  const [limit, setLimit] = useState("");
+  const { gameS } = useGame();
   const [msg, setMsg] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -118,6 +129,7 @@ export function AdminQuests({ live }: { live: AdminLive | null }) {
       p_ability_kind: abilityKind || "live",
       p_team: kind === "team" ? id : null, p_granny: kind === "granny" ? id : null,
       p_audience: toGrannies ? "grannies" : "teams",
+      p_time_limit_min: Number(limit) > 0 ? Math.round(Number(limit)) : null,
     });
     setBusy(false);
     setMsg(error ? friendly(error) : toGrannies ? "Oppdraget er sendt til grannyene." : "Oppdraget er sendt til lagene.");
@@ -140,6 +152,9 @@ export function AdminQuests({ live }: { live: AdminLive | null }) {
         <div className="flex gap-2">
           <label className="flex w-20 flex-col gap-1 type-label-s">Poeng
             <input className={field} inputMode="numeric" value={points} onChange={(e) => setPoints(e.target.value)} />
+          </label>
+          <label className="flex w-24 flex-col gap-1 type-label-s">Frist (min)
+            <input className={field} inputMode="numeric" value={limit} placeholder="Ingen" onChange={(e) => setLimit(e.target.value)} />
           </label>
           {!target.startsWith("granny") && (
             <>
@@ -180,6 +195,7 @@ export function AdminQuests({ live }: { live: AdminLive | null }) {
                 <div className="type-body-s text-text-tertiary">
                   {q.approved_teams.length > 0 ? `Løst av ${q.approved_teams.join(", ")}` : "Ingen har løst det ennå"}
                   {q.pending > 0 ? ` · ${q.pending} venter` : ""}
+                  {q.deadline_s != null ? (q.deadline_s <= gameS ? " · fristen er ute" : ` · frist om ${formatCountdown(q.deadline_s - gameS)}`) : ""}
                 </div>
               </div>
               <button type="button" className="type-label-s text-text-brand" onClick={() => toggle(q)}>{q.closed ? "Åpne" : "Steng"}</button>

@@ -1,7 +1,6 @@
 // S2 · Oppsett: tider, grannies, lag og soner. Tider, grannies og lag kan
 // bare endres før spillet starter; navn, regler og soner kan justeres underveis.
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { useGame } from "../lib/game";
 import { friendly } from "../lib/errors";
@@ -37,6 +36,7 @@ export function AdminSetup() {
   const [data, setData] = useState<SetupData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState<string | null>(null);
+  const [tab, setTab] = useState<Tab>("game");
 
   const load = useCallback(async () => {
     const { data, error } = await supabase.rpc("admin_setup");
@@ -55,31 +55,42 @@ export function AdminSetup() {
     return true;
   }
 
-  if (!data) return <div className="grid h-dvh place-items-center type-body-m text-text-secondary">{error ?? "Laster …"}</div>;
+  if (!data) return <div className="grid h-full place-items-center type-body-m text-text-secondary">{error ?? "Laster …"}</div>;
   const locked = data.game.status !== "setup";
 
   return (
-    <div className="flex h-dvh flex-col bg-bg-app lg:flex-row">
-      <aside className="flex flex-col gap-5 overflow-y-auto border-border-strong bg-bg-surface p-5 lg:w-[480px] lg:border-r-2">
+    <div className="flex h-full flex-col bg-bg-app lg:flex-row">
+      <aside className="flex flex-col gap-4 overflow-y-auto border-border-strong bg-bg-surface p-5 max-lg:max-h-[60%] lg:w-[480px] lg:border-r-2">
         <div className="flex items-center justify-between">
-          <Link to="/leder" className="flex items-center gap-1 type-label-m text-text-brand"><Icon name="chevron-left" size={20} /> Live</Link>
-          <Badge tone={locked ? "warning" : "brand"}>{locked ? "Spillet er i gang" : "Oppsett"}</Badge>
+          <h1 className="type-display-m">Oppsett</h1>
+          <Badge tone={locked ? "warning" : "brand"}>{locked ? "Spillet er i gang" : "Før start"}</Badge>
         </div>
-        <h1 className="type-display-m">Oppsett</h1>
-        {locked && <p className="rounded-md bg-bg-warning-subtle p-3 type-body-s">Tider, grannies og lag er låst når spillet har startet. Navn, regler og soner kan fortsatt endres.</p>}
+        {/* Én del om gangen, så siden ikke blir en lang liste. */}
+        <div role="tablist" aria-label="Oppsett" className="flex flex-wrap gap-1 rounded-lg bg-bg-sunken p-1">
+          {TABS.map(([key, label]) => (
+            <button key={key} type="button" role="tab" aria-selected={tab === key} onClick={() => setTab(key)}
+              className={`rounded-md px-3 py-1.5 type-label-s ${tab === key ? "bg-bg-surface text-text-brand shadow-sm" : "text-text-secondary"}`}>
+              {label}{key === "grannies" ? ` (${data.grannies.length})` : key === "teams" ? ` (${data.teams.length})` : key === "taxis" ? ` (${data.taxis.length})` : ""}
+            </button>
+          ))}
+        </div>
+        {locked && <p className="rounded-md bg-bg-warning-subtle p-3 type-body-s">Tider, grannies og lag er låst når spillet har startet. Navn, regler, poeng per plassering og spillområdet kan fortsatt endres.</p>}
         {error && <p className="sticky top-0 z-10 rounded-md bg-bg-danger-subtle p-3 type-body-s text-text-danger">{error}</p>}
         {saved && <p className="sticky top-0 z-10 rounded-md bg-bg-success-subtle p-3 type-body-s">{saved}</p>}
 
-        <GameSettings data={data} locked={locked} save={(s) => call("admin_update_game", { p_settings: s }, "Spillet er lagret.")} />
-        <Grannies data={data} locked={locked} call={call} />
-        <Teams data={data} locked={locked} call={call} />
-        <Taxis data={data} call={call} />
-        <Codes data={data} />
+        {tab === "game" && <GameSettings data={data} locked={locked} save={(s) => call("admin_update_game", { p_settings: s }, "Spillet er lagret.")} />}
+        {tab === "grannies" && <Grannies data={data} locked={locked} call={call} />}
+        {tab === "teams" && <Teams data={data} locked={locked} call={call} />}
+        {tab === "taxis" && <Taxis data={data} call={call} />}
+        {tab === "links" && <Codes data={data} />}
       </aside>
       <ZoneEditor data={data} call={call} />
     </div>
   );
 }
+
+const TABS = [["game", "Spillet"], ["grannies", "Grannies"], ["teams", "Lag"], ["taxis", "Taxier"], ["links", "Lenker"]] as const;
+type Tab = (typeof TABS)[number][0];
 
 // ---------------------------------------------------------------------------
 function GameSettings({ data, locked, save }: { data: SetupData; locked: boolean; save: (s: Record<string, unknown>) => void }) {
@@ -92,6 +103,8 @@ function GameSettings({ data, locked, save }: { data: SetupData; locked: boolean
     pings: g.ping_schedule_s.map(formatGameTime).join(", "),
     bonus: (state.bonus_ping_schedule_s ?? []).map(formatGameTime).join(", "),
   });
+  // Poeng per plassering for grannyene, 1. plass først.
+  const [places, setPlaces] = useState((state.granny_place_points ?? []).join(", "));
   const [rules, setRules] = useState<Record<string, string>>(() =>
     Object.fromEntries(RULES.map(([k, , unit]) => [k, String(unit === "min" ? (g.rules[k] ?? 0) / 60 : g.rules[k] ?? "")])));
   const [problem, setProblem] = useState<string | null>(null);
@@ -104,13 +117,17 @@ function GameSettings({ data, locked, save }: { data: SetupData; locked: boolean
     if (duration == null || pings.some((p) => p == null) || bonus.some((p) => p == null)) {
       return setProblem("Skriv tider som t:mm, f.eks. 0:15 eller 2:30. Ping-tider skilles med komma.");
     }
+    const placePoints = places.trim() ? places.split(",").map((x) => Number(x.trim())) : [];
+    if (placePoints.some((n) => !Number.isInteger(n) || n < 0)) {
+      return setProblem("Poeng per plassering må være hele tall skilt med komma, f.eks. 20, 15, 12.");
+    }
     setProblem(null);
     const ruleValues = RULES.map(([k, , unit]) => [k, Math.round(Number(rules[k]) * (unit === "min" ? 60 : 1))] as const);
     if (ruleValues.some(([, v]) => !Number.isFinite(v) || v < 0)) return setProblem("Reglene må være tall som er 0 eller mer.");
     const ruleObj = Object.fromEntries(ruleValues);
     // Etter start kan bare navn og regler endres.
-    if (locked) return save({ name, rules: ruleObj });
-    save({ name, duration_s: duration, head_start_s: 0, ping_schedule_s: pings, bonus_ping_schedule_s: bonus, rules: ruleObj });
+    if (locked) return save({ name, rules: ruleObj, granny_place_points: placePoints });
+    save({ name, duration_s: duration, head_start_s: 0, ping_schedule_s: pings, bonus_ping_schedule_s: bonus, rules: ruleObj, granny_place_points: placePoints });
   }
 
   return (
@@ -127,7 +144,13 @@ function GameSettings({ data, locked, save }: { data: SetupData; locked: boolean
         <textarea className={`${field} h-16 py-1`} disabled={locked} value={times.bonus} placeholder="Tomt: samme som over"
           onChange={(e) => setTimes({ ...times, bonus: e.target.value })} />
       </label>
-      <details>
+      <label className="flex flex-col gap-1 type-label-s">Poeng per plassering for grannyer (1. plass først)
+        <input className={field} value={places} placeholder="F.eks. 20, 15, 12, 9, 7, 5, 4, 3, 2, 1" onChange={(e) => setPlaces(e.target.value)} />
+        <span className="type-body-s font-normal text-text-tertiary">
+          Den som fanges først, får siste plass. Alle som er fri når spillet slutter, deler 1. plass. Plasser uten tall gir 0p.
+        </span>
+      </label>
+      <details open>
         <summary className="cursor-pointer type-label-s text-text-brand">Regler{locked ? " (kan endres underveis)" : ""}</summary>
         <div className="mt-2 grid grid-cols-2 gap-2">
           {RULES.map(([k, label]) => (
@@ -307,7 +330,7 @@ function Codes({ data }: { data: SetupData }) {
     ...data.grannies.map((g) => [g.is_romling ? `${g.name} (Rømling)` : g.name, g.code] as const),
   ];
   return (
-    <details className="rounded-md border border-border-default p-3">
+    <details open className="rounded-md border border-border-default p-3">
       <summary className="cursor-pointer type-heading-s">Innloggingslenker</summary>
       <p className="mt-2 type-body-s text-text-tertiary">Del lenken med riktig person. Alle på et lag bruker samme lenke.</p>
       <ul className="mt-2 flex flex-col gap-1">

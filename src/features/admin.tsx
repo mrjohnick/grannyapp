@@ -96,7 +96,8 @@ export function AdminPhotoQueue({ teams }: { teams: AdminLive["teams"] }) {
 // ---------------------------------------------------------------------------
 // Egne varsler og poeng
 // ---------------------------------------------------------------------------
-export function AdminTools({ live }: { live: AdminLive | null }) {
+/** `only` viser bare det ene skjemaet (meldinger og poeng ligger på hver sin side hos spilleder). */
+export function AdminTools({ live, only }: { live: AdminLive | null; only?: "broadcast" | "points" }) {
   const [audience, setAudience] = useState("all");
   const [text, setText] = useState("");
   const [who, setWho] = useState("");
@@ -141,6 +142,7 @@ export function AdminTools({ live }: { live: AdminLive | null }) {
 
   return (
     <section className="flex flex-col gap-3 rounded-lg border border-border-default p-3">
+      {only !== "points" && (<>
       <h2 className="type-heading-m">Send varsel</h2>
       <form onSubmit={send} className="flex flex-col gap-2">
         <select className={field} value={audience} onChange={(e) => setAudience(e.target.value)}>
@@ -152,6 +154,8 @@ export function AdminTools({ live }: { live: AdminLive | null }) {
         <textarea className={`${field} h-20 py-2`} value={text} onChange={(e) => setText(e.target.value)} placeholder="Meldingen" maxLength={500} />
         <Button size="M" icon="send" type="submit" disabled={busy || !text.trim()}>Send</Button>
       </form>
+      </>)}
+      {only !== "broadcast" && (<>
       <h2 className="type-heading-m">Juster poeng</h2>
       <form onSubmit={adjust} className="flex flex-col gap-2">
         <select className={field} value={who} onChange={(e) => setWho(e.target.value)}>
@@ -164,6 +168,7 @@ export function AdminTools({ live }: { live: AdminLive | null }) {
         </div>
         <Button size="M" variant="secondary" type="submit" disabled={busy}>Lagre</Button>
       </form>
+      </>)}
       {msg && <p className="type-body-s text-text-secondary">{msg}</p>}
     </section>
   );

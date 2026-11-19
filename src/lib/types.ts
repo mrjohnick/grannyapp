@@ -21,6 +21,10 @@ export type GameState = {
   next_ping_s: number | null;
   /** Neste ping gjelder bare bonus-grannyene. */
   next_ping_bonus: boolean;
+  /** Øker når navn, profilbilder, lag, soner eller taxier endres. Brukes til å hente dem på nytt. */
+  data_version: number;
+  /** Poeng per plassering for grannyene, 1. plass først. Bare spilleder får den. */
+  granny_place_points: number[] | null;
   role: Role;
   team: null | {
     id: string;
@@ -284,8 +288,11 @@ export type Summary = {
   game_s: number;
   grannies: Array<{
     id: string; name: string; catch_order: number | null; caught_at_s: number | null; caught_by: string | null;
+    /** Plass etter hvor lenge hun holdt seg fri. Alle som er fri, deler 1. plass. */
+    place: number;
     placement: number; tasks: number; total: number; taxi_rides: number;
   }>;
+  granny_place_points: number[];
   romling: null | { name: string; caught_at_s: number | null; caught_by: string | null; licensed: Array<{ team: string; at_s: number }> };
   teams: Array<{ id: string; name: string; color: TeamColor; points: number; catches: number }>;
   catches: Array<{ order: number | null; granny: string; is_romling: boolean; team: string; at_s: number }>;
@@ -327,6 +334,8 @@ export type Quest = {
   reward_abilities: number;
   reward_ability_kind?: AbilityKind;
   closed: boolean;
+  /** Spillsekundet fristen går ut (null: ingen frist). */
+  deadline_s?: number | null;
 };
 
 /** Evner i lagets sekk (se use_team_ability). */

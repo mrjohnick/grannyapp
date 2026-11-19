@@ -129,7 +129,10 @@ export function GrannyHome() {
 
         <div className="absolute inset-x-4 bottom-5 flex flex-col gap-3">
           {state.status === "ended" && (
-            <Link to="/oppsummering" className="block"><Button icon="trophy" block>Se oppsummeringen</Button></Link>
+            <div className="w-full rounded-lg border-2 border-border-strong bg-bg-surface p-4 shadow-hard">
+              <div className="type-heading-m">Spillet er over</div>
+              <p className="type-body-s text-text-secondary">Takk for jakten! Spilleder kårer vinnerne.</p>
+            </div>
           )}
           {granny.caught && state.status !== "ended" && <CaughtCard grannyId={granny.id} />}
           {granny.caught && running && (
