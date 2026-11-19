@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import "./styles/index.css";
 import { GameProvider } from "./lib/game";
+import { startUpdates } from "./lib/pwa";
 import { Join } from "./routes/Join";
 import { TelegramLink } from "./routes/TelegramLink";
 import { GrannyHome } from "./routes/GrannyHome";
@@ -20,6 +21,8 @@ if (brandFonts) {
   link.href = brandFonts;
   document.head.appendChild(link);
 }
+
+startUpdates();
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
