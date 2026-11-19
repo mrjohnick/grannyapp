@@ -16,9 +16,9 @@ import { formatCountdown, formatGameTime } from "../lib/gameClock";
 import type { MapMarker, TeamMap, TeamStatus } from "../lib/types";
 import { TeamCatchSheet, TeamCatchStatus } from "../features/catch";
 import { QuestSheet } from "../features/quests";
-import { AlbumRevealSheet, markAlbumSeen, PostkortSheet, ScoreSheet, unseenAlbumPhoto } from "../features/team";
+import { AlbumRevealSheet, markAlbumSeen, ScoreSheet, unseenAlbumPhoto } from "../features/team";
 
-type Panel = "catch" | "postkort" | "score" | "quests" | null;
+type Panel = "catch" | "score" | "quests" | null;
 
 const LIVE_TEXT = { sladret: "sladret på", spilleder: "vist av spilleder", evne: "deres evne", utenfor: "utenfor området", bingo: "Bingo" } as const;
 
@@ -96,10 +96,8 @@ export function TeamHome() {
   const free = map?.markers.filter((m) => m.kind !== "romling" && m.kind !== "anonym" && m.kind !== "taxi").length ?? 0;
   const running = state.status === "running";
   const hunting = running && gameS >= state.head_start_s;
-  const openCard = status?.postcards.find((p) => gameS < p.closes_at_s && !p.won_by);
 
   const actions: Array<{ key: Panel; icon: IconName; label: string; badge?: string; hot?: boolean; show: boolean }> = [
-    { key: "postkort", icon: "camera", label: "Postkort", badge: openCard ? formatCountdown(openCard.closes_at_s - gameS) : undefined, hot: !!openCard, show: true },
     { key: "quests", icon: "list", label: "Quests", badge: quests > 0 ? String(quests) : undefined, show: true },
     { key: "score", icon: "trophy", label: status ? `${status.points}p` : "Poeng", show: true },
   ];
@@ -183,10 +181,6 @@ export function TeamHome() {
             onClose={() => setPanel(null)}
             onRegistered={() => { setPanel(null); setCatchKey((k) => k + 1); load(); }}
           />
-        )}
-        {panel === "postkort" && status && (
-          <PostkortSheet status={status} gameS={gameS} coords={coords} onClose={() => setPanel(null)}
-            onDone={(msg) => { setPanel(null); setNotice(msg); loadStatus(); }} />
         )}
         {panel === "quests" && (
           <QuestSheet role="team" onClose={() => setPanel(null)} onChanged={() => { loadQuests(); load(); }} />

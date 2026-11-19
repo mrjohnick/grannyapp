@@ -1,71 +1,8 @@
-// Lagets oppgaver: Postkort (L5) og Poeng (L6).
-import { useState } from "react";
-import { supabase } from "../lib/supabase";
-import { friendly } from "../lib/errors";
+// Lagets poeng og poengtavle (L6), og Fotoalbum-bilder fra tidligere runder.
 import { formatGameTime } from "../lib/gameClock";
-import type { Coords } from "../lib/hooks";
 import type { TeamStatus } from "../lib/types";
-import { Badge, Button, Sheet, TeamDot } from "../components/ui";
+import { Button, Sheet, TeamDot } from "../components/ui";
 import { StoredPhoto } from "./camera";
-
-const pos = (c: Coords | null) => ({ p_lat: c?.lat ?? null, p_lng: c?.lng ?? null, p_accuracy: c?.accuracy ?? null });
-
-// ---------------------------------------------------------------------------
-// Postkort
-// ---------------------------------------------------------------------------
-export function PostkortSheet({ status, gameS, coords, onClose, onDone }: {
-  status: TeamStatus;
-  gameS: number;
-  coords: Coords | null;
-  onClose: () => void;
-  onDone: (msg: string) => void;
-}) {
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const open = status.postcards.find((p) => gameS < p.closes_at_s && !p.won_by);
-
-  async function deliver() {
-    if (!confirm("Marker postkortet som levert? Send gruppebildet i lagets Telegram-gruppe først.")) return;
-    setBusy(true);
-    setError(null);
-    const { error } = await supabase.rpc("deliver_postkort", pos(coords));
-    setBusy(false);
-    if (error) return setError(friendly(error) ?? "Noe gikk galt.");
-    onDone("Postkortet er levert. Spilleder sjekker bildet i Telegram.");
-  }
-
-  return (
-    <Sheet onClose={onClose}>
-      <h2 className="type-display-m">Postkort</h2>
-      {status.postcards.length === 0 && <p className="type-body-m text-text-secondary">Ingen postkort ennå. Det første kommer 0:30.</p>}
-      {status.postcards.map((p) => {
-        const isOpen = gameS < p.closes_at_s && !p.won_by;
-        return (
-          <div key={p.zone_id} className={`flex flex-col gap-2 rounded-lg border-2 p-3 ${isOpen ? "border-border-strong bg-bg-accent-subtle" : "border-border-default bg-bg-surface"}`}>
-            <div className="flex items-center justify-between">
-              <span className="type-label-caps">Postkort {p.number}</span>
-              {p.won_by ? <Badge tone="neutral">{`Tatt av ${p.won_by}`}</Badge>
-                : isOpen ? <Badge tone="warning">{`Åpent til ${formatGameTime(p.closes_at_s)}`}</Badge>
-                : <Badge tone="neutral">Borte</Badge>}
-            </div>
-            <p className="type-body-l">{p.mission}</p>
-            {p.my_status === "pending" && <p className="type-body-s text-text-secondary">Levert. Venter på spilleder.</p>}
-            {p.my_status === "rejected" && isOpen && <p className="type-body-s text-text-danger">Ble ikke godkjent. Prøv igjen.</p>}
-          </div>
-        );
-      })}
-      {open && (
-        <>
-          <p className="type-body-s text-text-tertiary">
-            Stedet vises ikke på kartet. Ta et gruppebilde der, send det i lagets Telegram-gruppe og marker som levert. Første godkjente gir 2p.
-          </p>
-          {error && <p className="rounded-md bg-bg-danger-subtle p-3 type-body-s text-text-danger">{error}</p>}
-          <Button icon="check" block disabled={busy} onClick={deliver}>Marker som levert</Button>
-        </>
-      )}
-    </Sheet>
-  );
-}
 
 // ---------------------------------------------------------------------------
 // Poeng og poengtavle

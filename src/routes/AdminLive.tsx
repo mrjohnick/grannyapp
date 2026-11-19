@@ -12,7 +12,7 @@ import { Badge, Button, TeamDot } from "../components/ui";
 import { LogoLockup } from "../components/Logo";
 import { formatClock, formatCountdown } from "../lib/gameClock";
 import { AdminCatchQueue } from "../features/catch";
-import { AdminEventLog, AdminPhotoQueue, AdminReveal, AdminTools } from "../features/admin";
+import { AdminEventLog, AdminReveal, AdminTools } from "../features/admin";
 import { AdminQuestQueue, AdminQuests } from "../features/quests";
 import { AdminTaxis } from "../features/taxis";
 import { PushChip } from "../components/PushChip";
@@ -128,7 +128,6 @@ export function AdminLive() {
         </section>
 
         <AdminCatchQueue />
-        <AdminPhotoQueue teams={live?.teams ?? []} />
         <AdminQuestQueue />
         <AdminTaxis taxiCount={live?.taxis.length ?? 0} gameS={gameS} />
 

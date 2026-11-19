@@ -18,7 +18,7 @@ const COLORS: Array<[TeamColor, string]> = [
   ["turkis", "Turkis"], ["bla", "Blå"], ["marine", "Marine"], ["rosa", "Rosa"], ["brun", "Brun"],
 ];
 const ZONE_KINDS: Array<[Zone["kind"], string, number]> = [
-  ["postkort", "Postkort", 40],
+  // Alle punkt-sonene er tatt ut av spillet. Bare spillområdet tegnes nå.
 ];
 const RULES: Array<[string, string, "min" | "s" | "m"]> = [
   ["taxi_max_rides", "Taxiturer per granny", "m"],
@@ -430,7 +430,6 @@ function ZoneEditor({ data, call }: { data: SetupData; call: Call }) {
         ) : (
           <>
             <div className="flex flex-wrap gap-2">
-              <Button size="M" icon="map-pin" onClick={() => setDraft(toDraft())}>Ny sone</Button>
               <Button size="M" variant="secondary" icon="map" onClick={() => setArea([])}>
                 {data.zones.some((z) => z.kind === "area") ? "Tegn spillområdet på nytt" : "Tegn spillområdet"}
               </Button>
