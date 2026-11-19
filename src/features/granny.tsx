@@ -8,6 +8,7 @@ import type { GrannyStatus } from "../lib/types";
 import { Badge, Button, Initial, SelectRow, Sheet, TeamDot } from "../components/ui";
 import { Icon } from "../components/Icon";
 import { CameraCapture, uploadPhoto } from "./camera";
+import { Avatar } from "../components/Avatar";
 
 const pos = (c: Coords | null) => ({ p_lat: c?.lat ?? null, p_lng: c?.lng ?? null, p_accuracy: c?.accuracy ?? null });
 
@@ -109,11 +110,10 @@ export function TaxiSheet({ status, coords, gameS, caught, taxisOnline, onClose,
 // ---------------------------------------------------------------------------
 // Sladrehanken
 // ---------------------------------------------------------------------------
-export function SnitchSheet({ status, coords, inKaffekroken, distanceText, onClose, onDone }: {
+export function SnitchSheet({ status, coords, avatarOf, onClose, onDone }: {
   status: GrannyStatus;
   coords: Coords | null;
-  inKaffekroken: boolean;
-  distanceText: string | null;
+  avatarOf: (grannyId: string | null | undefined) => string | null;
   onClose: () => void;
   onDone: (s: GrannyStatus) => void;
 }) {
@@ -136,26 +136,23 @@ export function SnitchSheet({ status, coords, inKaffekroken, distanceText, onClo
     <Sheet onClose={onClose}>
       <h2 className="type-display-m">Sladrehanken</h2>
       <p className="type-body-m text-text-secondary">
-        Den du velger, vises live hos alle lag i 60 sekunder. Fanges hun innen 10 minutter, får du 3p. Ingen får vite at det var deg før oppsummeringen.
+        Du kan sladre én gang i løpet av spillet, på hvem du vil. Alle lag ser da hvor hun er akkurat nå, som en ekstra ping.
+        Fanges hun innen 10 minutter, får du 3p. Ingen får vite at det var deg før oppsummeringen.
       </p>
       {status.snitch_used ? (
         <p className="rounded-md bg-bg-sunken p-3 type-body-m">Du har brukt sladringen din.</p>
-      ) : !inKaffekroken ? (
-        <div className="flex items-center gap-3 rounded-md bg-bg-warning-subtle p-3">
-          <Icon name="coffee" />
-          <p className="type-body-m">Gå til Kaffekroken for å sladre.{distanceText ? ` Du er ${distanceText} unna.` : ""}</p>
-        </div>
       ) : (
         <>
           {status.targets.length === 0 && <p className="type-body-m text-text-secondary">Ingen andre er fri.</p>}
           {status.targets.map((t) => (
-            <SelectRow key={t.id} title={t.name} lead={<Initial name={t.name} />} selected={t.id === target} onClick={() => setTarget(t.id)} />
+            <SelectRow key={t.id} title={t.name}
+              lead={avatarOf(t.id) ? <Avatar name={t.name} url={avatarOf(t.id)} /> : <Initial name={t.name} />}
+              selected={t.id === target} onClick={() => setTarget(t.id)} />
           ))}
-          <p className="type-body-s text-text-tertiary">Lagene ser en grå markør i Kaffekroken når du sladrer.</p>
         </>
       )}
       {error && <p className="rounded-md bg-bg-danger-subtle p-3 type-body-s text-text-danger">{error}</p>}
-      {!status.snitch_used && inKaffekroken && (
+      {!status.snitch_used && (
         <Button icon="megaphone" block disabled={!chosen || busy} onClick={snitch}>
           {chosen ? `Sladre på ${chosen.name}` : "Velg hvem du sladrer på"}
         </Button>

@@ -86,24 +86,23 @@ select ok(public.team_map()->'markers' @> '[{"kind": "taxi", "name": null}]', 'l
 select pg_temp.as_user('33333333-0000-0000-0000-000000000004');
 select ok(not (public.my_events() @> '[{"kind": "taxi"}]'), 'grannies får ikke taxivarselet');
 
--- Sladrehanken
+-- Sladrehanken: valgfri granny, ingen sone, bare siste posisjon (ingen live)
+select pg_temp.as_postgres(); select pg_temp.put('00000000-0000-0000-0000-0000000000a2', 58.3390, 8.5850, 990);
 select pg_temp.as_user('33333333-0000-0000-0000-000000000003');
-select throws_ok($$ select public.granny_snitch('00000000-0000-0000-0000-0000000000a2', 58.3300, 8.5700) $$,
-  'P0001', 'Du må stå i Kaffekroken', 'sladring krever Kaffekroken');
-select lives_ok($$ select public.granny_snitch('00000000-0000-0000-0000-0000000000a2', 58.3410, 8.5945, 5) $$, 'Astrid sladrer på Gerd');
-select throws_ok($$ select public.granny_snitch('00000000-0000-0000-0000-0000000000a3', 58.3410, 8.5945, 5) $$,
+select lives_ok($$ select public.granny_snitch('00000000-0000-0000-0000-0000000000a2', null, null) $$, 'Astrid sladrer på Gerd uten å stå i en sone');
+select throws_ok($$ select public.granny_snitch('00000000-0000-0000-0000-0000000000a3', null, null) $$,
   'P0001', 'Du har allerede sladret', 'bare én sladring per granny');
 select pg_temp.as_user('33333333-0000-0000-0000-000000000006');
-select throws_ok($$ select public.granny_snitch('00000000-0000-0000-0000-0000000000a2', 58.3410, 8.5945, 5) $$,
+select throws_ok($$ select public.granny_snitch('00000000-0000-0000-0000-0000000000a2', null, null) $$,
   'P0001', 'Rømlingen kan ikke sladre', 'Rømlingen kan ikke sladre');
 select pg_temp.as_user('33333333-0000-0000-0000-000000000007');
-select public.granny_snitch('00000000-0000-0000-0000-0000000000a2', 58.3410, 8.5945, 5);
+select throws_ok($$ select public.granny_snitch('00000000-0000-0000-0000-0000000000a1', null, null) $$,
+  'P0001', 'Vi vet ikke hvor hun er ennå', 'sladring på en granny uten posisjon brukes ikke opp');
 select pg_temp.as_postgres();
-select is((select max(live_until_s) from public.snitches where target_granny_id = '00000000-0000-0000-0000-0000000000a2'), 1120,
-  'to sladringer samtidig: tiden legges sammen');
-select is(public.granny_live_reason('00000000-0000-0000-0000-0000000000a2', 1000), 'sladret', 'Gerd er live');
+select is(public.granny_live_reason('00000000-0000-0000-0000-0000000000a2', 1000), null, 'Gerd blir ikke live');
 select pg_temp.as_user('33333333-0000-0000-0000-000000000001');
-select ok(jsonb_path_exists(public.team_map(), '$.markers[*] ? (@.kind == "anonym")'), 'lagene ser den anonyme markøren i Kaffekroken');
+select ok(public.team_map()->'markers' @> '[{"name": "Gerd", "snitched": true, "at_s": 1000}]', 'lagene ser Gerd der hun var da det ble sladret');
+select ok(not jsonb_path_exists(public.team_map(), '$.markers[*] ? (@.kind == "anonym")'), 'ingen anonym markør i Kaffekroken');
 select pg_temp.as_user('33333333-0000-0000-0000-000000000004');
 select ok(public.my_events() @> '[{"kind": "snitch_target"}]', 'den det sladres på, får varsel');
 

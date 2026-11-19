@@ -1,33 +1,26 @@
 // Side quests: spilleder lager oppdrag, laget sender bilde eller video, spilleder godkjenner
-// og gir poeng og/eller evnen «se granny live». Laget velger selv hvilken granny evnen gjelder.
+// og gir poeng.
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { supabase } from "../lib/supabase";
 import { friendly } from "../lib/errors";
 import { useInterval } from "../lib/hooks";
 import { useEventVersion } from "../lib/events";
-import { tagText, useFamilies } from "../lib/families";
 import { formatGameTime } from "../lib/gameClock";
 import type { AdminLive, AdminQuest, QuestSubmission, TeamQuests } from "../lib/types";
 import { Badge, Button, Sheet, TeamDot } from "../components/ui";
-import { Avatar } from "../components/Avatar";
 import { CameraCapture, MAX_VIDEO_MB, StoredMedia, uploadPhoto, uploadVideo } from "./camera";
 
 const field = "h-11 w-full rounded-sm border border-border-strong bg-bg-surface px-3 type-body-m";
 
-function rewardText(points: number, abilities: number) {
-  return [points > 0 ? `${points}p` : null, abilities > 0 ? `${abilities} × se granny live` : null].filter(Boolean).join(" + ");
-}
-
-function secondsText(s: number) {
-  return s % 60 === 0 ? `${s / 60} min` : `${s} sek`;
+function rewardText(points: number) {
+  return `${points}p`;
 }
 
 // ---------------------------------------------------------------------------
 // Laget
 // ---------------------------------------------------------------------------
-export function QuestSheet({ gameId, blind, onClose, onChanged }: {
+export function QuestSheet({ gameId, onClose, onChanged }: {
   gameId: string;
-  blind: boolean;
   onClose: () => void;
   onChanged: () => void;
 }) {
@@ -73,10 +66,6 @@ export function QuestSheet({ gameId, blind, onClose, onChanged }: {
   return (
     <Sheet onClose={onClose}>
       <h2 className="type-display-m">Side quests</h2>
-      {data && data.abilities_left > 0 && (
-        <AbilityPanel left={data.abilities_left} liveS={data.ability_live_s} blind={blind}
-          onUsed={(m) => { setMsg(m); load(); onChanged(); }} />
-      )}
       {msg && <p className="rounded-md bg-bg-success-subtle p-3 type-body-s">{msg}</p>}
       {error && <p className="rounded-md bg-bg-danger-subtle p-3 type-body-s text-text-danger">{error}</p>}
       {data === null && <p className="type-body-m text-text-tertiary">Henter oppdrag …</p>}
@@ -87,7 +76,7 @@ export function QuestSheet({ gameId, blind, onClose, onChanged }: {
           <div key={q.id} className="flex flex-col gap-2 rounded-lg border-2 border-border-strong p-3">
             <div className="flex items-start justify-between gap-2">
               <span className="type-label-l">{q.title}</span>
-              <Badge tone="brand">{rewardText(q.reward_points, q.reward_abilities)}</Badge>
+              <Badge tone="brand">{rewardText(q.reward_points)}</Badge>
             </div>
             {q.description && <p className="type-body-s text-text-secondary">{q.description}</p>}
             {q.status === "pending" && <Badge tone="warning">Venter på spilleder</Badge>}
@@ -124,55 +113,6 @@ export function QuestSheet({ gameId, blind, onClose, onChanged }: {
   );
 }
 
-function AbilityPanel({ left, liveS, blind, onUsed }: { left: number; liveS: number; blind: boolean; onUsed: (msg: string) => void }) {
-  const { tagOf, avatarOf } = useFamilies();
-  const [grannies, setGrannies] = useState<Array<{ id: string; name: string }> | null>(null);
-  const [choice, setChoice] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    supabase.from("grannies").select("id, name, is_romling, caught_at_s").then(({ data }) => {
-      const rows = (data ?? []) as Array<{ id: string; name: string; is_romling: boolean; caught_at_s: number | null }>;
-      setGrannies(rows.filter((g) => !g.is_romling && g.caught_at_s == null).sort((a, b) => a.name.localeCompare(b.name, "nb")));
-    });
-  }, []);
-
-  async function use() {
-    if (!choice) return;
-    setBusy(true);
-    setError(null);
-    const { error } = await supabase.rpc("team_use_ability", { p_granny: choice });
-    setBusy(false);
-    if (error) return setError(friendly(error));
-    const name = grannies?.find((g) => g.id === choice)?.name;
-    onUsed(`Dere ser ${name} live i ${secondsText(liveS)}. Se kartet!`);
-  }
-
-  return (
-    <div className="flex flex-col gap-2 rounded-lg border-2 border-border-strong bg-bg-accent p-3">
-      <div className="flex items-baseline justify-between">
-        <span className="type-label-l">Se granny live</span>
-        <span className="type-label-m">{left} igjen</span>
-      </div>
-      <p className="type-body-s">Velg en granny. Dere ser henne på kartet i {secondsText(liveS)}, og hun får beskjed.</p>
-      {blind && <p className="type-body-s">Dere er blinde nå. Vent til blindheten er over.</p>}
-      <div className="flex max-h-48 flex-col gap-1 overflow-y-auto">
-        {grannies?.map((g) => (
-          <button key={g.id} type="button" onClick={() => setChoice(g.id)}
-            className={`flex items-center gap-2 rounded-md border-2 px-2 py-1 text-left ${choice === g.id ? "border-border-strong bg-bg-surface" : "border-transparent"}`}>
-            <Avatar name={g.name} url={avatarOf(g.id)} size={28} />
-            <span className="flex-1 type-label-m">{g.name}</span>
-            <span className="type-body-s text-text-secondary">{tagText(tagOf(g.id))}</span>
-          </button>
-        ))}
-      </div>
-      {error && <p className="type-body-s text-text-danger">{error}</p>}
-      <Button size="M" icon="eye" disabled={!choice || busy || blind} onClick={use}>Se live nå</Button>
-    </div>
-  );
-}
-
 // ---------------------------------------------------------------------------
 // Spilleder: lag oppdrag og godkjenn bevis
 // ---------------------------------------------------------------------------
@@ -182,7 +122,6 @@ export function AdminQuests({ live }: { live: AdminLive | null }) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [points, setPoints] = useState("3");
-  const [abilities, setAbilities] = useState("1");
   const [team, setTeam] = useState("");
   const [msg, setMsg] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -199,7 +138,7 @@ export function AdminQuests({ live }: { live: AdminLive | null }) {
     setBusy(true);
     const { error } = await supabase.rpc("admin_save_quest", {
       p_id: null, p_title: title, p_description: description, p_points: Number(points) || 0,
-      p_abilities: Number(abilities) || 0, p_team: team || null,
+      p_abilities: 0, p_team: team || null,
     });
     setBusy(false);
     setMsg(error ? friendly(error) : "Oppdraget er sendt til lagene.");
@@ -223,9 +162,6 @@ export function AdminQuests({ live }: { live: AdminLive | null }) {
           <label className="flex flex-1 flex-col gap-1 type-label-s">Poeng
             <input className={field} inputMode="numeric" value={points} onChange={(e) => setPoints(e.target.value)} />
           </label>
-          <label className="flex flex-1 flex-col gap-1 type-label-s">Se granny live
-            <input className={field} inputMode="numeric" value={abilities} onChange={(e) => setAbilities(e.target.value)} />
-          </label>
         </div>
         <select className={field} value={team} onChange={(e) => setTeam(e.target.value)}>
           <option value="">Alle lag</option>
@@ -239,7 +175,7 @@ export function AdminQuests({ live }: { live: AdminLive | null }) {
           {quests.map((q) => (
             <li key={q.id} className={`flex items-start gap-2 rounded-md px-2 py-1 ${q.closed ? "opacity-50" : ""}`}>
               <div className="flex-1">
-                <div className="type-label-s">{q.title} <span className="font-normal text-text-secondary">· {rewardText(q.reward_points, q.reward_abilities)}{q.team_name ? ` · bare ${q.team_name}` : ""}</span></div>
+                <div className="type-label-s">{q.title} <span className="font-normal text-text-secondary">· {rewardText(q.reward_points)}{q.team_name ? ` · bare ${q.team_name}` : ""}</span></div>
                 <div className="type-body-s text-text-tertiary">
                   {q.approved_teams.length > 0 ? `Løst av ${q.approved_teams.join(", ")}` : "Ingen har løst det ennå"}
                   {q.pending > 0 ? ` · ${q.pending} venter` : ""}
@@ -291,7 +227,7 @@ export function AdminQuestQueue() {
             <span className="flex items-center gap-2 type-label-m"><TeamDot color={s.team_color} /> {s.team_name}</span>
             <span className="type-timer-s text-text-tertiary">{formatGameTime(s.submitted_s)}</span>
           </div>
-          <p className="type-label-m">{s.quest_title} <span className="font-normal text-text-secondary">· {rewardText(s.reward_points, s.reward_abilities)}</span></p>
+          <p className="type-label-m">{s.quest_title} <span className="font-normal text-text-secondary">· {rewardText(s.reward_points)}</span></p>
           {s.quest_description && <p className="type-body-s text-text-secondary">{s.quest_description}</p>}
           <StoredMedia path={s.storage_path} media={s.media} className="max-h-80 w-full rounded-md object-contain" />
           <div className="flex gap-2">

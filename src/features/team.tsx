@@ -1,81 +1,14 @@
-// Lagets oppgaver: Nabovakten (L3), Postkort (L5), Poeng (L6).
+// Lagets oppgaver: Postkort (L5) og Poeng (L6).
 import { useState } from "react";
 import { supabase } from "../lib/supabase";
 import { friendly } from "../lib/errors";
-import { formatCountdown, formatGameTime } from "../lib/gameClock";
-import { distanceM, distanceText, inZone, zoneCenter } from "../lib/geo";
+import { formatGameTime } from "../lib/gameClock";
 import type { Coords } from "../lib/hooks";
-import type { TeamStatus, Zone } from "../lib/types";
+import type { TeamStatus } from "../lib/types";
 import { Badge, Button, Sheet, TeamDot } from "../components/ui";
-import { Icon } from "../components/Icon";
 import { CameraCapture, StoredPhoto, uploadPhoto } from "./camera";
 
 const pos = (c: Coords | null) => ({ p_lat: c?.lat ?? null, p_lng: c?.lng ?? null, p_accuracy: c?.accuracy ?? null });
-
-// ---------------------------------------------------------------------------
-// Nabovakten
-// ---------------------------------------------------------------------------
-export function NabovaktSheet({ status, zones, coords, gameS, onClose, onDone }: {
-  status: TeamStatus;
-  zones: Zone[];
-  coords: Coords | null;
-  gameS: number;
-  onClose: () => void;
-  onDone: () => void;
-}) {
-  const [busy, setBusy] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<{ hit: boolean; number: number } | null>(null);
-
-  async function checkIn(zoneId: string) {
-    setBusy(zoneId);
-    setError(null);
-    const { data, error } = await supabase.rpc("team_nabovakt", { p_zone: zoneId, ...pos(coords) });
-    setBusy(null);
-    if (error) return setError(friendly(error));
-    setResult(data as { hit: boolean; number: number });
-    onDone();
-  }
-
-  return (
-    <Sheet onClose={onClose}>
-      <h2 className="type-display-m">Nabovakten</h2>
-      <p className="type-body-m text-text-secondary">Sjekk inn ved et punkt og få vite om det er en granny innenfor 300 m. Hvert punkt én gang i timen.</p>
-      {result && (
-        <div className={`flex items-center gap-3 rounded-lg border-2 border-border-strong p-3 ${result.hit ? "bg-bg-success-subtle" : "bg-bg-sunken"}`}>
-          <Icon name={result.hit ? "eye" : "eye-off"} size={28} />
-          <div>
-            <div className="type-label-l">{result.hit ? "Ja, det er en granny innenfor 300 m." : "Nei, ingen grannies her."}</div>
-            <div className="type-body-s text-text-secondary">Punkt {result.number}</div>
-          </div>
-        </div>
-      )}
-      {status.nabovakt.map((n) => {
-        const zone = zones.find((z) => z.id === n.zone_id);
-        const center = zone ? zoneCenter(zone) : null;
-        const dist = coords && center ? distanceM(coords, center) : null;
-        const here = !!zone && inZone(zone, coords);
-        const wait = n.next_s != null ? n.next_s - gameS : 0;
-        return (
-          <div key={n.zone_id} className="flex items-center gap-3 rounded-md border border-border-default bg-bg-surface px-4 py-3">
-            <span className="grid size-10 place-items-center rounded-full bg-bg-info-subtle type-label-l">{n.number}</span>
-            <div className="flex-1">
-              <div className="type-label-l">{n.label}</div>
-              <div className="type-body-s text-text-secondary">
-                {wait > 0 ? `Brukt. Åpner om ${formatCountdown(wait)}` : here ? "Dere er her" : dist != null ? `${distanceText(dist)} unna` : "Venter på GPS"}
-              </div>
-            </div>
-            <Button size="M" disabled={!here || wait > 0 || busy !== null} onClick={() => checkIn(n.zone_id)}>
-              {busy === n.zone_id ? "…" : "Sjekk inn"}
-            </Button>
-          </div>
-        );
-      })}
-      {status.nabovakt.length === 0 && <p className="type-body-m text-text-secondary">Ingen Nabovakt-punkter i dette spillet.</p>}
-      {error && <p className="rounded-md bg-bg-danger-subtle p-3 type-body-s text-text-danger">{error}</p>}
-    </Sheet>
-  );
-}
 
 // ---------------------------------------------------------------------------
 // Postkort

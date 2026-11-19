@@ -69,6 +69,8 @@ export type TeamMap = {
     id: string | null;
     name: string | null;
     live_reason: "sladret" | "spilleder" | "evne" | "utenfor" | "bingo" | null;
+    /** Posisjonen er fra en sladring (en ekstra ping), ikke fra en vanlig ping. */
+    snitched?: boolean;
     busy?: boolean;
     lat: number;
     lng: number;

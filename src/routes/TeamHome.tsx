@@ -7,7 +7,6 @@ import { useEventVersion } from "../lib/events";
 import { tagText, useFamilies } from "../lib/families";
 import { useDevicePosition, useInterval, useOnPing, useWakeLock } from "../lib/hooks";
 import { useZones } from "../lib/useZones";
-import { inZone } from "../lib/geo";
 import { GameMap, zoneMarkers } from "../map/GameMap";
 import { Badge, Button, Screen, TeamDot, TopBar } from "../components/ui";
 import { Icon, type IconName } from "../components/Icon";
@@ -17,9 +16,9 @@ import { formatCountdown, formatGameTime } from "../lib/gameClock";
 import type { MapMarker, TeamMap, TeamStatus } from "../lib/types";
 import { TeamCatchSheet, TeamCatchStatus } from "../features/catch";
 import { QuestSheet } from "../features/quests";
-import { AlbumRevealSheet, markAlbumSeen, NabovaktSheet, PostkortSheet, ScoreSheet, unseenAlbumPhoto } from "../features/team";
+import { AlbumRevealSheet, markAlbumSeen, PostkortSheet, ScoreSheet, unseenAlbumPhoto } from "../features/team";
 
-type Panel = "catch" | "nabovakt" | "postkort" | "score" | "quests" | null;
+type Panel = "catch" | "postkort" | "score" | "quests" | null;
 
 const LIVE_TEXT = { sladret: "sladret på", spilleder: "vist av spilleder", evne: "deres evne", utenfor: "utenfor området", bingo: "Bingo" } as const;
 
@@ -38,13 +37,11 @@ export function TeamHome() {
   const [catchKey, setCatchKey] = useState(0);
   const [notice, setNotice] = useState<string | null>(null);
   const { tagOf, avatarOf } = useFamilies();
-  const [abilities, setAbilities] = useState(0);
   const [quests, setQuests] = useState(0);
   const loadQuests = useCallback(async () => {
     const { data } = await supabase.rpc("team_quests");
     if (!data) return;
-    const q = data as { abilities_left: number; quests: Array<{ status: string | null; closed: boolean }> };
-    setAbilities(q.abilities_left);
+    const q = data as { quests: Array<{ status: string | null; closed: boolean }> };
     setQuests(q.quests.filter((x) => !x.closed && x.status !== "approved" && x.status !== "pending").length);
   }, []);
 
@@ -87,7 +84,8 @@ export function TeamHome() {
       const who = tag ? `${m.name} (${tag})` : m.name;
       const label = m.kind === "romling" ? "???"
         : m.kind === "anonym" ? "Noen sladret"
-        : m.live_reason ? `${who} · ${LIVE_TEXT[m.live_reason]}` : who;
+        : m.live_reason ? `${who} · ${LIVE_TEXT[m.live_reason]}`
+        : m.snitched ? `${who} · sladret ${formatGameTime(m.at_s)}` : who;
       list.push({ key: m.id ?? `${m.kind}-${m.at_s}`, kind: m.kind, lat: m.lat, lng: m.lng, label,
         avatarUrl: m.kind === "romling" ? null : avatarOf(m.id), bonus: tagOf(m.id)?.kind === "bonus" });
     }
@@ -99,12 +97,10 @@ export function TeamHome() {
   const running = state.status === "running";
   const hunting = running && gameS >= state.head_start_s;
   const openCard = status?.postcards.find((p) => gameS < p.closes_at_s && !p.won_by);
-  const nearNabovakt = zones.some((z) => z.kind === "nabovakt" && inZone(z, coords));
 
   const actions: Array<{ key: Panel; icon: IconName; label: string; badge?: string; hot?: boolean; show: boolean }> = [
-    { key: "nabovakt", icon: "eye", label: "Nabovakt", hot: nearNabovakt, show: true },
     { key: "postkort", icon: "camera", label: "Postkort", badge: openCard ? formatCountdown(openCard.closes_at_s - gameS) : undefined, hot: !!openCard, show: true },
-    { key: "quests", icon: "list", label: "Quests", badge: abilities > 0 ? `${abilities} evne${abilities === 1 ? "" : "r"}` : quests > 0 ? String(quests) : undefined, hot: abilities > 0, show: true },
+    { key: "quests", icon: "list", label: "Quests", badge: quests > 0 ? String(quests) : undefined, show: true },
     { key: "score", icon: "trophy", label: status ? `${status.points}p` : "Poeng", show: true },
   ];
 
@@ -188,15 +184,12 @@ export function TeamHome() {
             onRegistered={() => { setPanel(null); setCatchKey((k) => k + 1); load(); }}
           />
         )}
-        {panel === "nabovakt" && status && (
-          <NabovaktSheet status={status} zones={zones} coords={coords} gameS={gameS} onClose={() => setPanel(null)} onDone={loadStatus} />
-        )}
         {panel === "postkort" && status && (
           <PostkortSheet status={status} gameS={gameS} gameId={state.game_id} coords={coords} onClose={() => setPanel(null)}
             onDone={(msg) => { setPanel(null); setNotice(msg); loadStatus(); }} />
         )}
         {panel === "quests" && (
-          <QuestSheet gameId={state.game_id} blind={blind} onClose={() => setPanel(null)} onChanged={() => { loadQuests(); load(); }} />
+          <QuestSheet gameId={state.game_id} onClose={() => setPanel(null)} onChanged={() => { loadQuests(); load(); }} />
         )}
         {panel === "score" && status && <ScoreSheet status={status} teamId={team.id} onClose={() => setPanel(null)} />}
         {albumPhoto && status && (

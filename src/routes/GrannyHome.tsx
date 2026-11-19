@@ -7,7 +7,7 @@ import { useEventVersion } from "../lib/events";
 import { useFamilies } from "../lib/families";
 import { useDevicePosition, useInterval, useWakeLock } from "../lib/hooks";
 import { useZones } from "../lib/useZones";
-import { distanceM, distanceText, inZone, zoneCenter } from "../lib/geo";
+import { inZone } from "../lib/geo";
 import { GameMap, zoneMarkers } from "../map/GameMap";
 import { Badge, Button, Screen, TopBar } from "../components/ui";
 import { Icon } from "../components/Icon";
@@ -53,12 +53,8 @@ export function GrannyHome() {
   const [panel, setPanel] = useState<Panel>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
-  const kaffekroken = zones.find((z) => z.kind === "kaffekroken");
   const bingo = zones.find((z) => z.kind === "bingo");
-  const inKaffekroken = !!kaffekroken && inZone(kaffekroken, coords);
   const inBingo = !!bingo && inZone(bingo, coords);
-  const kaffeCenter = kaffekroken ? zoneCenter(kaffekroken) : null;
-  const kaffeDistance = coords && kaffeCenter ? distanceText(distanceM(coords, kaffeCenter)) : null;
 
   const markers = useMemo<MapMarker[]>(() => {
     const list = zoneMarkers(zones);
@@ -143,7 +139,7 @@ export function GrannyHome() {
               {!granny.is_romling && (
                 <Button
                   icon="megaphone"
-                  variant={inKaffekroken && !status?.snitch_used ? "primary" : "secondary"}
+                  variant="secondary"
                   disabled={!active || !status || status.snitch_used}
                   onClick={() => setPanel("snitch")}
                   aria-label="Sladre"
@@ -174,9 +170,9 @@ export function GrannyHome() {
           />
         )}
         {panel === "snitch" && status && (
-          <SnitchSheet status={status} coords={coords} inKaffekroken={inKaffekroken} distanceText={kaffeDistance}
+          <SnitchSheet status={status} coords={coords} avatarOf={avatarOf}
             onClose={() => setPanel(null)}
-            onDone={(s) => { setStatus(s); setPanel(null); setNotice("Du har sladret. Hun er live hos lagene nå."); load(); }} />
+            onDone={(s) => { setStatus(s); setPanel(null); setNotice("Du har sladret. Lagene ser hvor hun er nå."); load(); }} />
         )}
         {panel === "photo" && status && (
           <PhotoSheet status={status} gameS={gameS} gameId={state.game_id} coords={coords} inBingo={inBingo}
