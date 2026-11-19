@@ -136,7 +136,7 @@ export function SnitchSheet({ status, coords, avatarOf, onClose, onDone }: {
       <h2 className="type-display-m">Sladrehanken</h2>
       <p className="type-body-m text-text-secondary">
         Du kan sladre én gang i løpet av spillet, på hvem du vil. Alle lag ser da hvor hun er akkurat nå, som en ekstra ping.
-        Fanges hun innen 10 minutter, får du 3p. Ingen får vite at det var deg før oppsummeringen.
+        Det gir ingen poeng. Ingen får vite at det var deg før oppsummeringen.
       </p>
       {status.snitch_used ? (
         <p className="rounded-md bg-bg-sunken p-3 type-body-m">Du har brukt sladringen din.</p>

@@ -61,7 +61,7 @@ select pg_temp.as_postgres();
 select is((select caught_by from public.grannies where name = 'Gerd'), '00000000-0000-0000-0000-0000000000b2'::uuid, 'Gerd er fanget av laget spilleder valgte');
 select is((select status::text from public.catches c join public.teams t on t.id = c.team_id where t.name = 'Lag Blå'), 'void', 'det andre kravet faller bort');
 select is(pg_temp.team_points('00000000-0000-0000-0000-0000000000b2'), 15, 'egen granny gir 15p');
-select is((select delta from public.points_ledger where reason = 'sladrehank'), 3, 'sladrehanken får 3p når målet fanges innen 10 min');
+select is((select count(*)::int from public.points_ledger where reason = 'sladrehank'), 0, 'sladring gir ikke poeng');
 select is((select count(*)::int from public.points_ledger where reason = 'honnorrabatt'), 0, 'honnørrabatten er fjernet');
 select is((select catch_order from public.grannies where name = 'Gerd'), 1, 'Gerd er fanget som nr. 1');
 
