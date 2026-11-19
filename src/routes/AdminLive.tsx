@@ -15,6 +15,7 @@ import { AdminCatchQueue } from "../features/catch";
 import { AdminEventLog, AdminPhotoQueue, AdminReveal, AdminTools } from "../features/admin";
 import { AdminQuestQueue, AdminQuests } from "../features/quests";
 import { PushChip } from "../components/PushChip";
+import { AdminTelegramAlerts, TelegramChip } from "../components/TelegramAlerts";
 import type { AdminLive as AdminLiveData, MapMarker, TelegramStats } from "../lib/types";
 
 const STALE_S = 60;
@@ -102,7 +103,7 @@ export function AdminLive() {
             <Link to="/oppsummering" className="rounded-full border-2 border-border-strong bg-bg-surface px-3 py-1 type-label-s">Oppsummering</Link>
           </div>
         </div>
-        <PushChip />
+        <div className="flex flex-wrap gap-2"><PushChip /><TelegramChip /></div>
         <section className="rounded-lg border-2 border-border-strong bg-bg-brand-subtle p-4 shadow-hard">
           <div className="flex items-center justify-between">
             <span className="type-label-caps text-text-secondary">Spilletid</span>
@@ -142,6 +143,7 @@ export function AdminLive() {
         <AdminTools live={live} />
         <AdminEventLog />
 
+        <AdminTelegramAlerts />
         <TelegramStatsPanel stats={stats} windowMin={windowMin} onWindow={setWindowMin} />
 
         <section>

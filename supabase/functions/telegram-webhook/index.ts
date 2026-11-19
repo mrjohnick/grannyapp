@@ -4,6 +4,10 @@
 // første posisjon som `message` og hver oppdatering som `edited_message`.
 // Vi lagrer alle som posisjoner med kilde «telegram».
 //
+// Alle (lag, taxi, spilleder og grannyer) kan også få spillets varsler her.
+// De kobler seg til med /start <token> fra appen. game-worker sender varslene.
+// /stopp skrur dem av, /start skrur dem på igjen.
+//
 // Miljøvariabler:
 //   TELEGRAM_BOT_TOKEN       fra @BotFather
 //   TELEGRAM_WEBHOOK_SECRET  samme verdi som secret_token i setWebhook
@@ -58,13 +62,17 @@ type TgUpdate = {
 
 const TEXT = {
   linked: (name: string) =>
-    `Hei, ${name}! Nå: trykk ⊕ → Posisjon → «Del live-posisjon» → «Til jeg slår det av». Del bare her, aldri i lag-gruppa.`,
+    `Hei, ${name}! Nå: trykk ⊕ → Posisjon → «Del live-posisjon» → «Til jeg slår det av». Del bare her, aldri i lag-gruppa. Varslene fra spillet kommer også her.`,
+  alertsLinked: (name: string | null) =>
+    `Hei${name ? `, ${name}` : ""}! Nå får du varslene fra spillet her, også når mobilen er låst. Skriv /stopp for å slå dem av.`,
+  muted: "Varslene er slått av. Skriv /start for å slå dem på igjen.",
+  unmuted: "Varslene er på igjen.",
   badToken: "Den lenken kjenner jeg ikke igjen. Åpne den på nytt fra appen.",
   notLinked: "Jeg vet ikke hvem du er ennå. Åpne lenken fra appen først.",
   notLive:
     "Det var bare én posisjon. Del live-posisjon i stedet: ⊕ → Posisjon → «Del live-posisjon» → «Til jeg slår det av».",
   live: "Takk! Du er med på pingene. Ikke sveip bort Telegram – da stopper delingen.",
-  help: "Åpne lenken fra appen for å koble deg til, og del så live-posisjon her.",
+  help: "Åpne lenken fra appen for å koble deg til. Da får du varslene fra spillet her.",
 };
 
 async function reply(chatId: number, text: string) {
@@ -87,14 +95,26 @@ async function handle(update: TgUpdate) {
 
   if (msg.text?.startsWith("/start")) {
     const token = msg.text.split(/\s+/)[1];
-    if (!token) return reply(msg.chat.id, TEXT.help);
-    const { data, error } = await supabase.rpc("telegram_link", {
+    if (!token) {
+      // /start uten token: slå varslene på igjen hvis kontoen er koblet.
+      const { data, error } = await supabase.rpc("telegram_set_muted", { p_user_id: msg.from.id, p_muted: false });
+      if (error) throw error;
+      return reply(msg.chat.id, data > 0 ? TEXT.unmuted : TEXT.help);
+    }
+    const { data, error } = await supabase.rpc("telegram_start", {
       p_token: token,
       p_user_id: msg.from.id,
       p_chat_id: msg.chat.id,
     });
     if (error) throw error;
-    return reply(msg.chat.id, data?.ok ? TEXT.linked(data.granny_name) : TEXT.badToken);
+    if (!data?.ok) return reply(msg.chat.id, TEXT.badToken);
+    return reply(msg.chat.id, data.kind === "granny" ? TEXT.linked(data.name) : TEXT.alertsLinked(data.name));
+  }
+
+  if (msg.text?.startsWith("/stopp") || msg.text?.startsWith("/stop")) {
+    const { data, error } = await supabase.rpc("telegram_set_muted", { p_user_id: msg.from.id, p_muted: true });
+    if (error) throw error;
+    return reply(msg.chat.id, data > 0 ? TEXT.muted : TEXT.help);
   }
 
   if (msg.location) {

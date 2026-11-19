@@ -12,6 +12,7 @@ import { GameMap, zoneMarkers } from "../map/GameMap";
 import { Badge, Button, Screen, TeamDot, TopBar } from "../components/ui";
 import { Icon, type IconName } from "../components/Icon";
 import { PushChip } from "../components/PushChip";
+import { TelegramChip } from "../components/TelegramAlerts";
 import { formatCountdown, formatGameTime } from "../lib/gameClock";
 import type { MapMarker, TeamMap, TeamStatus } from "../lib/types";
 import { TeamCatchSheet, TeamCatchStatus } from "../features/catch";
@@ -141,6 +142,7 @@ export function TeamHome() {
             </div>
           )}
           <PushChip />
+          <TelegramChip />
           {notice && (
             <button type="button" onClick={() => setNotice(null)} className="rounded-md bg-bg-success-subtle px-3 py-2 text-left type-label-s">
               {notice}

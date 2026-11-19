@@ -10,6 +10,7 @@ import { useInterval } from "./hooks";
 import { formatGameTime } from "./gameClock";
 import type { GameEvent } from "./types";
 import { Icon, type IconName } from "../components/Icon";
+import { TelegramBanner } from "../components/TelegramAlerts";
 
 type Ctx = {
   version: number;
@@ -218,6 +219,7 @@ function NotificationPage({ history, newAfter, onClose }: { history: GameEvent[]
         <span className="w-[76px]" aria-hidden />
       </header>
       <main className="flex-1 overflow-y-auto px-4 py-3 pb-[max(16px,env(safe-area-inset-bottom))]">
+        <TelegramBanner />
         {list.length === 0 ? (
           <p className="mt-10 text-center type-body-m text-text-secondary">Ingen varsler ennå. Meldinger og hendelser i spillet samles her.</p>
         ) : (

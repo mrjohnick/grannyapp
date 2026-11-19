@@ -1,5 +1,5 @@
-// game-worker: sender Web Push for nye varsler, og rydder bilder i Storage
-// for spill som er slettet etter 30 dager.
+// game-worker: sender nye varsler som Web Push og Telegram-meldinger, og
+// rydder bilder i Storage for spill som er slettet etter 30 dager.
 //
 // Vekkes av databasen (pg_net) hver gang et varsel legges inn, og av pg_cron
 // hvert minutt og hver natt. Funksjonen er åpen (verify_jwt = false), men den
@@ -8,6 +8,7 @@
 // Miljøvariabler:
 //   VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY  fra `npx web-push generate-vapid-keys`
 //   VAPID_SUBJECT                        f.eks. https://grannyapp.example (valgfri)
+//   TELEGRAM_BOT_TOKEN                   samme bot som telegram-webhook (valgfri)
 //   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY / SUPABASE_SECRET_KEYS  settes av Supabase
 
 import { createClient } from "npm:@supabase/supabase-js@2";
@@ -37,14 +38,23 @@ if (pushReady) {
   webpush.setVapidDetails(/^(https:|mailto:)/.test(subject) ? subject : "https://grannyapp.invalid", VAPID_PUBLIC, VAPID_PRIVATE);
 }
 
-type Sub = { endpoint: string; p256dh: string; auth: string };
-type ClaimedEvent = { id: number; kind: string; title: string; body: string | null; subs: Sub[] };
+const BOT_TOKEN = Deno.env.get("TELEGRAM_BOT_TOKEN") ?? "";
+const telegramReady = Boolean(BOT_TOKEN);
 
-async function sendPush(): Promise<{ events: number; sent: number; removed: number }> {
-  if (!pushReady) return { events: 0, sent: 0, removed: 0 };
+type Sub = { endpoint: string; p256dh: string; auth: string };
+type ClaimedEvent = { id: number; kind: string; title: string; body: string | null; subs: Sub[]; chats: number[] };
+
+async function sendAll() {
+  if (!pushReady && !telegramReady) return { events: 0, sent: 0, removed: 0, telegram: 0 };
   const { data, error } = await supabase.rpc("worker_claim_events");
   if (error) throw new Error(`worker_claim_events: ${error.message}`);
   const events = (data ?? []) as ClaimedEvent[];
+  const [push, telegram] = await Promise.all([sendPush(events), sendTelegram(events)]);
+  return { events: events.length, ...push, telegram };
+}
+
+async function sendPush(events: ClaimedEvent[]): Promise<{ sent: number; removed: number }> {
+  if (!pushReady) return { sent: 0, removed: 0 };
   let sent = 0, removed = 0;
 
   await Promise.all(events.flatMap((e) =>
@@ -65,7 +75,51 @@ async function sendPush(): Promise<{ events: number; sent: number; removed: numb
       }
     })
   ));
-  return { events: events.length, sent, removed };
+  return { sent, removed };
+}
+
+// Telegram tåler rundt 30 meldinger i sekundet fra én bot. Vi sender én og én
+// med litt pause, og venter når Telegram ber om det (429).
+const TG_GAP_MS = 40;
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+async function tgSend(chatId: number, text: string): Promise<"ok" | "blocked" | "failed"> {
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ chat_id: chatId, text, parse_mode: "HTML", link_preview_options: { is_disabled: true } }),
+    });
+    if (res.ok) return "ok";
+    const body = await res.json().catch(() => ({})) as { description?: string; parameters?: { retry_after?: number } };
+    if (res.status === 429) { await sleep((body.parameters?.retry_after ?? 1) * 1000); continue; }
+    // Brukeren har blokkert boten eller slettet chatten.
+    if (res.status === 403 || (res.status === 400 && /chat not found/i.test(body.description ?? ""))) return "blocked";
+    console.error("telegram feilet", res.status, body.description);
+    return "failed";
+  }
+  return "failed";
+}
+
+async function sendTelegram(events: ClaimedEvent[]): Promise<number> {
+  if (!telegramReady) return 0;
+  let sent = 0;
+  const blocked = new Set<number>();
+  for (const e of events) {
+    const text = `<b>${esc(e.title)}</b>${e.body ? `\n${esc(e.body)}` : ""}`;
+    for (const chat of e.chats ?? []) {
+      if (blocked.has(chat)) continue;
+      const result = await tgSend(chat, text);
+      if (result === "ok") sent++;
+      if (result === "blocked") {
+        blocked.add(chat);
+        await supabase.rpc("worker_telegram_blocked", { p_chat_id: chat });
+      }
+      await sleep(TG_GAP_MS);
+    }
+  }
+  return sent;
 }
 
 async function cleanStorage(): Promise<number> {
@@ -94,7 +148,7 @@ Deno.serve(async (req) => {
   } catch { /* tom body */ }
 
   try {
-    const result = task === "purge" ? { files: await cleanStorage() } : await sendPush();
+    const result = task === "purge" ? { files: await cleanStorage() } : await sendAll();
     return Response.json({ ok: true, task, ...result });
   } catch (err) {
     console.error(task, (err as Error).message);

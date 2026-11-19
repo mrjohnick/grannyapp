@@ -11,6 +11,7 @@ import { formatCountdown } from "../lib/gameClock";
 import { GameMap, zoneMarkers } from "../map/GameMap";
 import { Badge, Button, Screen, TopBar } from "../components/ui";
 import { PushChip } from "../components/PushChip";
+import { TelegramChip } from "../components/TelegramAlerts";
 import { Avatar } from "../components/Avatar";
 import { photoUrl } from "../features/camera";
 import type { MapMarker, TaxiQueue } from "../lib/types";
@@ -78,6 +79,7 @@ export function TaxiHome() {
             <span className="type-label-m">{state.taxi?.name}</span>
           </div>
           <PushChip />
+          <TelegramChip />
           {gpsError && <div className="rounded-md bg-bg-danger-subtle px-3 py-2 type-body-s">{gpsError}</div>}
         </div>
 
