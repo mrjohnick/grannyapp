@@ -15,6 +15,8 @@ type Overview = {
     status: "waiting" | "accepted" | "picked_up";
     granny_id: string;
     granny_name: string;
+    caught: boolean;
+    ride_ends_s: number | null;
     taxi_id: string | null;
     taxi_name: string | null;
     requested_s: number;
@@ -78,13 +80,16 @@ export function AdminTaxis({ taxiCount, gameS }: { taxiCount: number; gameS: num
             return (
               <li key={r.id} className="flex flex-col gap-2 rounded-md border border-border-default p-2">
                 <div className="flex items-center gap-2">
-                  <span className="flex-1 type-label-m">{r.granny_name}</span>
+                  <span className="flex-1 type-label-m">
+                    {r.granny_name}{r.caught && <span className="type-body-s text-text-tertiary"> · fanget, sist i køen</span>}
+                  </span>
                   <Badge tone={tone}>{label}</Badge>
                 </div>
                 <p className="type-body-s text-text-secondary">
                   {r.status === "waiting" && `Har ventet ${formatCountdown(Math.max(0, gameS - r.requested_s))}`}
                   {r.status === "accepted" && `${r.taxi_name ?? "Taxi"} er på vei`}
                   {r.status === "picked_up" && `Sitter i ${r.taxi_name ?? "taxien"}`}
+                  {r.status === "picked_up" && r.ride_ends_s != null && ` · ${formatCountdown(Math.max(0, r.ride_ends_s - gameS))} igjen`}
                 </p>
                 {r.status === "accepted" && quiet >= 60 && (
                   <p className="rounded-sm bg-bg-warning-subtle px-2 py-1 type-body-s">

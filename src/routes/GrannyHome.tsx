@@ -29,7 +29,9 @@ export function GrannyHome() {
   const tag = tagOf(granny.id);
   const [selfie, setSelfie] = useState(false);
   const zones = useZones();
-  const { coords, error: gpsError } = useDevicePosition(!granny.caught && state.status !== "ended");
+  const [status, setStatus] = useState<GrannyStatus | null>(null);
+  // En fanget granny trenger GPS bare når hun har bestilt taxi (sjåføren skal finne henne).
+  const { coords, error: gpsError } = useDevicePosition(state.status !== "ended" && (!granny.caught || !!status?.taxi_request));
   useWakeLock(state.status === "running");
 
   const [tgAge, setTgAge] = useState<number | null | undefined>(undefined);
@@ -39,7 +41,6 @@ export function GrannyHome() {
   }, []);
   useInterval(loadTelegram, 15_000);
 
-  const [status, setStatus] = useState<GrannyStatus | null>(null);
   const [map, setMap] = useState<GrannyMap | null>(null);
   const load = useCallback(async () => {
     const [st, mp] = await Promise.all([supabase.rpc("granny_status"), supabase.rpc("granny_map")]);
@@ -126,6 +127,11 @@ export function GrannyHome() {
             <Link to="/oppsummering" className="block"><Button icon="trophy" block>Se oppsummeringen</Button></Link>
           )}
           {granny.caught && state.status !== "ended" && <CaughtCard grannyId={granny.id} />}
+          {granny.caught && running && (
+            <Button icon="taxi" variant="secondary" block disabled={!status} onClick={() => setPanel("taxi")}>
+              {status?.taxi_request ? "Taxien din" : "Bestill taxi"}
+            </Button>
+          )}
           {!granny.caught && state.status !== "ended" && (
             <div className="flex gap-3">
               {!granny.is_romling && (
@@ -148,7 +154,8 @@ export function GrannyHome() {
         </div>
 
         {panel === "taxi" && status && (
-          <TaxiSheet status={status} coords={coords} taxisOnline={(map?.markers ?? []).filter((m) => m.kind === "taxi").length} onClose={() => setPanel(null)} onDone={load} />
+          <TaxiSheet status={status} coords={coords} gameS={gameS} caught={granny.caught}
+            taxisOnline={(map?.markers ?? []).filter((m) => m.kind === "taxi").length} onClose={() => setPanel(null)} onDone={load} />
         )}
         {selfie && (
           <CameraCapture

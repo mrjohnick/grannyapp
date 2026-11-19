@@ -25,9 +25,8 @@ const friendly = (msg: string) => ERRORS[msg] ?? "Noe gikk galt. Prøv igjen.";
 // ---------------------------------------------------------------------------
 // L2 · Registrer fangst
 // ---------------------------------------------------------------------------
-export function TeamCatchSheet({ state, gameS, onClose, onRegistered }: {
+export function TeamCatchSheet({ state, onClose, onRegistered }: {
   state: GameState;
-  gameS: number;
   onClose: () => void;
   onRegistered: () => void;
 }) {
@@ -55,8 +54,6 @@ export function TeamCatchSheet({ state, gameS, onClose, onRegistered }: {
   const points = (g: GrannyRow) =>
     g.is_romling ? 20 : g.id === team.assigned_granny_id ? 15 : tagOf(g.id)?.kind === "bonus" ? 20 : 10;
   const chosen = grannies?.find((g) => g.id === selected);
-  const romlingKnown = grannies?.some((g) => g.is_romling);
-  const showLockedRomling = !team.has_license && gameS >= state.romling_reveal_s && !romlingKnown;
 
   async function submit(selfie: string | null) {
     if (!selected) return;
@@ -85,15 +82,6 @@ export function TeamCatchSheet({ state, gameS, onClose, onRegistered }: {
           trailing={<Badge tone="success">Fri</Badge>}
         />
       ))}
-      {showLockedRomling && (
-        <SelectRow
-          title="Rømlingen"
-          subtitle="20p · krever lisens fra Nattevakten"
-          lead={<Initial name="?" muted />}
-          disabled
-          trailing={<Badge tone="neutral">Låst</Badge>}
-        />
-      )}
       {error && <p className="rounded-md bg-bg-danger-subtle p-3 type-body-s text-text-danger">{error}</p>}
       <Button icon="camera" block disabled={!chosen || busy} onClick={() => setCamera(true)}>
         {chosen ? `Ta selfie med ${chosen.name}` : "Velg hvem dere fanget"}

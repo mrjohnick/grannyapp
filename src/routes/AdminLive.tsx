@@ -76,6 +76,7 @@ export function AdminLive() {
         lat: g.lat, lng: g.lng,
         label: `${g.name} (${g.is_romling ? "Rømling" : tagText(tagOf(g.id)) ?? "–"}) · ${ageText(g.age_s)}`,
         avatarUrl: avatarOf(g.id),
+        bonus: tagOf(g.id)?.kind === "bonus",
       });
     }
     for (const t of live?.teams ?? []) {

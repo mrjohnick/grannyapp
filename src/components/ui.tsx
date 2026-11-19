@@ -77,18 +77,21 @@ export function TopBar({
   status,
   blindUntilS,
   caught,
+  pingLabel,
 }: {
   gameS: number;
   nextPingS: number | null;
   status: "setup" | "running" | "paused" | "ended";
   blindUntilS?: number | null;
   caught?: boolean;
+  /** Overskrift over nedtellingen, f.eks. «Bonus-ping». Standard: «Neste ping». */
+  pingLabel?: string;
 }) {
   const toPing = nextPingS === null ? null : nextPingS - gameS;
   const blind = blindUntilS != null && blindUntilS > gameS;
   const soon = !blind && !caught && toPing !== null && toPing <= 30;
 
-  let label = "Neste ping";
+  let label = pingLabel ?? "Neste ping";
   let value = toPing === null ? "–" : formatCountdown(toPing);
   if (status === "setup") { label = "Status"; value = "Venter"; }
   if (status === "paused") { label = "Status"; value = "Pause"; }

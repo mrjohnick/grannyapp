@@ -38,13 +38,16 @@ function markerElement(m: MapMarker) {
   el.className = "flex flex-col items-center gap-1 pointer-events-none";
   const size = m.kind === "meg" ? 22 : m.kind === "team" ? 16 : 44;
   const dotBg = m.kind === "team" && m.color ? `var(--lag-${m.color})` : s.bg;
+  const border = m.bonus ? "4px solid var(--color-marker-bonus)" : `3px solid ${s.halo && m.kind !== "meg" ? s.halo : "var(--color-bg-surface)"}`;
   el.innerHTML = `
     <div style="position:relative;width:60px;height:60px;display:flex;align-items:center;justify-content:center">
       ${s.halo ? `<div style="position:absolute;inset:0;border-radius:999px;background:${s.halo};opacity:.3"></div>` : ""}
+      ${m.bonus ? `<div style="position:absolute;inset:2px;border-radius:999px;border:3px dashed var(--color-marker-bonus)"></div>` : ""}
       <div style="width:${size}px;height:${size}px;border-radius:999px;background:${dotBg};display:flex;align-items:center;justify-content:center;
-                  border:3px solid ${s.halo && m.kind !== "meg" ? s.halo : "var(--color-bg-surface)"};box-shadow:var(--shadow-marker);overflow:hidden">
+                  border:${border};box-shadow:var(--shadow-marker);overflow:hidden">
         ${m.avatarUrl ? `<img src="${escapeHtml(m.avatarUrl)}" alt="" style="width:100%;height:100%;object-fit:cover" />` : s.icon ? iconSvg(s.icon, 22, s.iconColor) : ""}
       </div>
+      ${m.bonus ? `<div style="position:absolute;top:2px;right:2px;width:20px;height:20px;border-radius:999px;background:var(--color-marker-bonus);color:var(--plomme-900);font:700 13px/20px var(--font-sans);text-align:center;box-shadow:var(--shadow-marker)">★</div>` : ""}
     </div>
     ${m.label ? `<div style="margin-top:-6px;padding:2px 8px;border-radius:999px;background:var(--color-bg-inverse);color:var(--color-text-inverse);font:600 13px/16px var(--font-sans);white-space:nowrap">${escapeHtml(m.label)}</div>` : ""}`;
   return el;

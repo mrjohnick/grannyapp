@@ -17,9 +17,9 @@ import { formatCountdown, formatGameTime } from "../lib/gameClock";
 import type { MapMarker, TeamMap, TeamStatus } from "../lib/types";
 import { TeamCatchSheet, TeamCatchStatus } from "../features/catch";
 import { QuestSheet } from "../features/quests";
-import { AlbumRevealSheet, markAlbumSeen, NabovaktSheet, PostkortSheet, RomlingSheet, ScoreSheet, unseenAlbumPhoto } from "../features/team";
+import { AlbumRevealSheet, markAlbumSeen, NabovaktSheet, PostkortSheet, ScoreSheet, unseenAlbumPhoto } from "../features/team";
 
-type Panel = "catch" | "nabovakt" | "romling" | "postkort" | "score" | "quests" | null;
+type Panel = "catch" | "nabovakt" | "postkort" | "score" | "quests" | null;
 
 const LIVE_TEXT = { sladret: "sladret på", spilleder: "vist av spilleder", evne: "deres evne", utenfor: "utenfor området", bingo: "Bingo" } as const;
 
@@ -88,7 +88,8 @@ export function TeamHome() {
       const label = m.kind === "romling" ? "???"
         : m.kind === "anonym" ? "Noen sladret"
         : m.live_reason ? `${who} · ${LIVE_TEXT[m.live_reason]}` : who;
-      list.push({ key: m.id ?? `${m.kind}-${m.at_s}`, kind: m.kind, lat: m.lat, lng: m.lng, label, avatarUrl: m.kind === "romling" ? null : avatarOf(m.id) });
+      list.push({ key: m.id ?? `${m.kind}-${m.at_s}`, kind: m.kind, lat: m.lat, lng: m.lng, label,
+        avatarUrl: m.kind === "romling" ? null : avatarOf(m.id), bonus: tagOf(m.id)?.kind === "bonus" });
     }
     if (coords) list.push({ key: "meg", kind: "meg", lat: coords.lat, lng: coords.lng, label: "Dere" });
     return list;
@@ -99,21 +100,18 @@ export function TeamHome() {
   const hunting = running && gameS >= state.head_start_s;
   const openCard = status?.postcards.find((p) => gameS < p.closes_at_s && !p.won_by);
   const nearNabovakt = zones.some((z) => z.kind === "nabovakt" && inZone(z, coords));
-  const nattevakt = zones.find((z) => z.kind === "nattevakt");
-  const atPost = !!nattevakt && inZone(nattevakt, coords);
-  const romlingOut = gameS >= state.romling_reveal_s;
 
   const actions: Array<{ key: Panel; icon: IconName; label: string; badge?: string; hot?: boolean; show: boolean }> = [
     { key: "nabovakt", icon: "eye", label: "Nabovakt", hot: nearNabovakt, show: true },
     { key: "postkort", icon: "camera", label: "Postkort", badge: openCard ? formatCountdown(openCard.closes_at_s - gameS) : undefined, hot: !!openCard, show: true },
-    { key: "romling", icon: "moon", label: "Rømlingen", hot: atPost && !status?.has_license, badge: status?.has_license ? "Lisens" : undefined, show: romlingOut },
     { key: "quests", icon: "list", label: "Quests", badge: abilities > 0 ? `${abilities} evne${abilities === 1 ? "" : "r"}` : quests > 0 ? String(quests) : undefined, hot: abilities > 0, show: true },
     { key: "score", icon: "trophy", label: status ? `${status.points}p` : "Poeng", show: true },
   ];
 
   return (
     <Screen className={blind ? "theme-dark" : ""}>
-      <TopBar gameS={gameS} nextPingS={state.next_ping_s} status={state.status} blindUntilS={blindUntil} />
+      <TopBar gameS={gameS} nextPingS={state.next_ping_s} status={state.status} blindUntilS={blindUntil}
+        pingLabel={state.next_ping_bonus ? "Bonus-ping" : undefined} />
       <main className="relative flex-1">
         {blind ? (
           <div className="flex h-full flex-col items-center justify-center gap-4 px-6 text-center">
@@ -186,17 +184,12 @@ export function TeamHome() {
         {panel === "catch" && (
           <TeamCatchSheet
             state={state}
-            gameS={gameS}
             onClose={() => setPanel(null)}
             onRegistered={() => { setPanel(null); setCatchKey((k) => k + 1); load(); }}
           />
         )}
         {panel === "nabovakt" && status && (
           <NabovaktSheet status={status} zones={zones} coords={coords} gameS={gameS} onClose={() => setPanel(null)} onDone={loadStatus} />
-        )}
-        {panel === "romling" && status && (
-          <RomlingSheet status={status} zones={zones} coords={coords} gameS={gameS} onClose={() => setPanel(null)}
-            onDone={() => { loadStatus(); refresh(); load(); }} />
         )}
         {panel === "postkort" && status && (
           <PostkortSheet status={status} gameS={gameS} gameId={state.game_id} coords={coords} onClose={() => setPanel(null)}

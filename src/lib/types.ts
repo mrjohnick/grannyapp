@@ -14,8 +14,13 @@ export type GameState = {
   head_start_s: number;
   romling_reveal_s: number;
   ping_schedule_s: number[];
+  /** Ping-tider for bonus-grannyer. Tom: samme som ping_schedule_s. */
+  bonus_ping_schedule_s: number[];
   last_ping_s: number | null;
+  /** For en granny: hennes egen neste ping. For andre: neste av begge listene. */
   next_ping_s: number | null;
+  /** Neste ping gjelder bare bonus-grannyene. */
+  next_ping_bonus: boolean;
   role: Role;
   team: null | {
     id: string;
@@ -30,6 +35,7 @@ export type GameState = {
     id: string;
     name: string;
     is_romling: boolean;
+    is_bonus: boolean;
     caught: boolean;
     caught_at_s: number | null;
     avatar_path: string | null;
@@ -50,6 +56,8 @@ export type MapMarker = {
   color?: string;
   /** Profilbilde (signert lenke) som vises i markøren i stedet for ikonet. */
   avatarUrl?: string | null;
+  /** Bonus-granny: gul ring og stjerne rundt markøren. */
+  bonus?: boolean;
 };
 
 export type TeamMap = {
@@ -183,7 +191,15 @@ export type GrannyStatus = {
   points: number;
   taxi_rides: number;
   taxi_max_rides: number;
-  taxi_request: null | { status: "waiting" | "accepted" | "picked_up"; taxi_name: string | null; queue_position: number | null };
+  taxi_request: null | {
+    status: "waiting" | "accepted" | "picked_up";
+    taxi_name: string | null;
+    queue_position: number | null;
+    /** Fanget: står bak alle som ikke er fanget. */
+    last_in_queue: boolean;
+    /** Spillsekundet tiden i taxien er ute (null: ingen grense). */
+    ride_ends_s: number | null;
+  };
   taxis: number;
   snitch_used: boolean;
   fotoalbum_next_s: number | null;
@@ -280,18 +296,21 @@ export type TaxiQueue = {
     status: "accepted" | "picked_up";
     granny_name: string;
     granny_avatar: string | null;
+    caught: boolean;
     requested_s: number;
     accepted_s: number | null;
     picked_s: number | null;
     lat: number | null;
     lng: number | null;
     position_s: number | null;
+    /** Spillsekundet tiden i taxien er ute (null: ingen grense). */
+    ride_ends_s: number | null;
     /** Hvor gammel grannyens posisjon er, i spillsekunder. */
     position_age_s: number | null;
   };
   /** Turen gis videre hvis appen ikke sender posisjon så lenge. */
   timeout_s: number;
-  waiting: Array<{ id: string; granny_name: string; requested_s: number }>;
+  waiting: Array<{ id: string; granny_name: string; requested_s: number; caught: boolean }>;
   busy: number;
 };
 

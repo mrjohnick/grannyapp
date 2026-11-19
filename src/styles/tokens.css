@@ -82,6 +82,7 @@
 
   --color-marker-granny: var(--plomme-600);
   --color-marker-romling: var(--plomme-900);
+  --color-marker-bonus: var(--sennep-500);
   --color-marker-anonym: var(--krem-500);
   --color-marker-nabovakt: var(--himmel-500);
   --color-marker-kaffekroken: var(--sennep-500);
@@ -142,6 +143,7 @@
 
   --color-marker-granny: var(--plomme-400);
   --color-marker-romling: var(--krem-50);
+  --color-marker-bonus: var(--sennep-300);
   --color-marker-anonym: var(--krem-400);
   --color-marker-nattevakt: var(--sennep-300);
   --color-marker-meg: var(--himmel-200);

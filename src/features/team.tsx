@@ -1,5 +1,5 @@
-// Lagets oppgaver: Nabovakten (L3), Rømlingen (L4), Postkort (L5), Poeng (L6).
-import { useState, type FormEvent } from "react";
+// Lagets oppgaver: Nabovakten (L3), Postkort (L5), Poeng (L6).
+import { useState } from "react";
 import { supabase } from "../lib/supabase";
 import { friendly } from "../lib/errors";
 import { formatCountdown, formatGameTime } from "../lib/gameClock";
@@ -73,85 +73,6 @@ export function NabovaktSheet({ status, zones, coords, gameS, onClose, onDone }:
       })}
       {status.nabovakt.length === 0 && <p className="type-body-m text-text-secondary">Ingen Nabovakt-punkter i dette spillet.</p>}
       {error && <p className="rounded-md bg-bg-danger-subtle p-3 type-body-s text-text-danger">{error}</p>}
-    </Sheet>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Rømlingen
-// ---------------------------------------------------------------------------
-export function RomlingSheet({ status, zones, coords, gameS, onClose, onDone }: {
-  status: TeamStatus;
-  zones: Zone[];
-  coords: Coords | null;
-  gameS: number;
-  onClose: () => void;
-  onDone: () => void;
-}) {
-  const [guess, setGuess] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [wrong, setWrong] = useState(false);
-  const post = zones.find((z) => z.kind === "nattevakt");
-  const here = !!post && inZone(post, coords);
-  const center = post ? zoneCenter(post) : null;
-  const dist = coords && center ? distanceM(coords, center) : null;
-  const wait = status.romling_next_try_s != null ? status.romling_next_try_s - gameS : 0;
-
-  async function submit(e: FormEvent) {
-    e.preventDefault();
-    setBusy(true);
-    setError(null);
-    const { data, error } = await supabase.rpc("team_romling_guess", { p_guess: guess, ...pos(coords) });
-    setBusy(false);
-    if (error) return setError(friendly(error));
-    const r = data as { correct: boolean };
-    setWrong(!r.correct);
-    if (r.correct) setGuess("");
-    onDone();
-  }
-
-  if (status.has_license) {
-    return (
-      <Sheet onClose={onClose}>
-        <Badge tone="success">Lisens</Badge>
-        <h2 className="type-display-m">Rømlingen er {status.romling_name}.</h2>
-        <p className="type-body-m text-text-secondary">Dere ser navnet hennes på kartet, og kan fange henne for 20p.</p>
-      </Sheet>
-    );
-  }
-
-  return (
-    <Sheet onClose={onClose}>
-      <h2 className="type-display-m">Hvem er Rømlingen?</h2>
-      <p className="type-body-m text-text-secondary">
-        Nattevakten gir dere gåten ved posten. Riktig navn gir 3p og lisens til å fange henne.
-      </p>
-      {wrong && (
-        <div className="rounded-lg border-2 border-border-strong bg-bg-danger-subtle p-3">
-          <div className="type-label-l text-text-danger">Feil navn</div>
-          <div className="type-body-s">Vis denne skjermen til Nattevakten for del 2 av gåten. Neste forsøk om {formatCountdown(Math.max(wait, 0))}.</div>
-        </div>
-      )}
-      {!here && (
-        <div className="flex items-center gap-3 rounded-md bg-bg-warning-subtle p-3">
-          <Icon name="moon" />
-          <p className="type-body-m">Feltet låses opp ved Nattevaktens post.{dist != null ? ` Dere er ${distanceText(dist)} unna.` : ""}</p>
-        </div>
-      )}
-      <form onSubmit={submit} className="flex flex-col gap-3">
-        <input
-          value={guess}
-          onChange={(e) => setGuess(e.target.value)}
-          disabled={!here || wait > 0}
-          placeholder="Navnet på Rømlingen"
-          autoComplete="off"
-          className="h-14 rounded-md border-2 border-border-strong bg-bg-surface px-4 type-body-l disabled:bg-bg-disabled"
-        />
-        {wait > 0 && !wrong && <p className="type-body-s text-text-secondary">Neste forsøk om {formatCountdown(wait)}.</p>}
-        {error && <p className="rounded-md bg-bg-danger-subtle p-3 type-body-s text-text-danger">{error}</p>}
-        <Button type="submit" icon="lock" block disabled={!here || wait > 0 || busy || !guess.trim()}>Sjekk navnet</Button>
-      </form>
     </Sheet>
   );
 }

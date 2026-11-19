@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "../lib/supabase";
+import { useGame } from "../lib/game";
 import { friendly } from "../lib/errors";
 import { formatGameTime } from "../lib/gameClock";
 import { parseGameTime } from "../lib/geo";
@@ -17,20 +18,20 @@ const COLORS: Array<[TeamColor, string]> = [
   ["turkis", "Turkis"], ["bla", "Blå"], ["marine", "Marine"], ["rosa", "Rosa"], ["brun", "Brun"],
 ];
 const ZONE_KINDS: Array<[Zone["kind"], string, number]> = [
-  ["kaffekroken", "Kaffekroken", 40], ["bingo", "Bingo", 30], ["nattevakt", "Nattevaktens post", 40],
+  ["kaffekroken", "Kaffekroken", 40], ["bingo", "Bingo", 30],
   ["nabovakt", "Nabovakt-punkt", 30], ["postkort", "Postkort", 40],
 ];
 const RULES: Array<[string, string, "min" | "s" | "m"]> = [
   ["taxi_max_rides", "Taxiturer per granny", "m"],
   ["taxi_pickup_show_s", "Hentested vises i (min)", "min"],
   ["taxi_driver_timeout_s", "Taxi uten svar gis videre etter (min)", "min"],
+  ["taxi_ride_max_s", "Maks tid i taxi (min, 0 = ingen grense)", "min"],
   ["catch_points_bonus", "Bonus-granny, poeng", "m"],
   ["ability_live_s", "Se granny live i (sek)", "s"],
   ["blind_s", "Blind i (min)", "min"],
   ["reblind_cooldown_s", "Ny blindhet tidligst etter (min)", "min"],
   ["nabovakt_cooldown_s", "Nabovakt, samme punkt (min)", "min"],
   ["nabovakt_search_m", "Nabovakt, søkeradius (m)", "m"],
-  ["romling_retry_s", "Rømlingen, nytt forsøk (min)", "min"],
   ["snitch_live_s", "Sladret: live i (sek)", "s"],
   ["retention_days", "Slett data etter (dager)", "m"],
 ];
@@ -90,19 +91,24 @@ export function AdminSetup() {
 // ---------------------------------------------------------------------------
 function GameSettings({ data, locked, save }: { data: SetupData; locked: boolean; save: (s: Record<string, unknown>) => void }) {
   const g = data.game;
+  // Bonus-tidene kommer fra game_state (admin_setup har dem ikke).
+  const { state } = useGame();
   const [name, setName] = useState(g.name);
   const [times, setTimes] = useState({
-    duration: formatGameTime(g.duration_s), head: formatGameTime(g.head_start_s), reveal: formatGameTime(g.romling_reveal_s),
+    duration: formatGameTime(g.duration_s),
     pings: g.ping_schedule_s.map(formatGameTime).join(", "),
+    bonus: (state.bonus_ping_schedule_s ?? []).map(formatGameTime).join(", "),
   });
   const [rules, setRules] = useState<Record<string, string>>(() =>
     Object.fromEntries(RULES.map(([k, , unit]) => [k, String(unit === "min" ? (g.rules[k] ?? 0) / 60 : g.rules[k] ?? "")])));
   const [problem, setProblem] = useState<string | null>(null);
 
   function submit() {
-    const duration = parseGameTime(times.duration), head = parseGameTime(times.head), reveal = parseGameTime(times.reveal);
+    const duration = parseGameTime(times.duration);
     const pings = times.pings.split(",").map((t) => parseGameTime(t));
-    if (duration == null || head == null || reveal == null || pings.some((p) => p == null)) {
+    // Tomt felt: bonus-grannyene følger de vanlige ping-tidene.
+    const bonus = times.bonus.trim() ? times.bonus.split(",").map((t) => parseGameTime(t)) : [];
+    if (duration == null || pings.some((p) => p == null) || bonus.some((p) => p == null)) {
       return setProblem("Skriv tider som t:mm, f.eks. 0:15 eller 2:30. Ping-tider skilles med komma.");
     }
     setProblem(null);
@@ -111,22 +117,22 @@ function GameSettings({ data, locked, save }: { data: SetupData; locked: boolean
     const ruleObj = Object.fromEntries(ruleValues);
     // Etter start kan bare navn og regler endres.
     if (locked) return save({ name, rules: ruleObj });
-    save({ name, duration_s: duration, head_start_s: head, romling_reveal_s: reveal, ping_schedule_s: pings, rules: ruleObj });
+    save({ name, duration_s: duration, head_start_s: 0, ping_schedule_s: pings, bonus_ping_schedule_s: bonus, rules: ruleObj });
   }
 
   return (
     <section className="flex flex-col gap-2">
       <h2 className="type-heading-m">Spillet</h2>
       <label className="flex flex-col gap-1 type-label-s">Navn<input className={field} value={name} onChange={(e) => setName(e.target.value)} /></label>
-      <div className="grid grid-cols-3 gap-2">
-        {([["duration", "Varighet"], ["head", "Forsprang"], ["reveal", "Rømlingen"]] as const).map(([k, l]) => (
-          <label key={k} className="flex flex-col gap-1 type-label-s">{l}
-            <input className={field} disabled={locked} value={times[k]} onChange={(e) => setTimes({ ...times, [k]: e.target.value })} />
-          </label>
-        ))}
-      </div>
+      <label className="flex w-32 flex-col gap-1 type-label-s">Varighet
+        <input className={field} disabled={locked} value={times.duration} onChange={(e) => setTimes({ ...times, duration: e.target.value })} />
+      </label>
       <label className="flex flex-col gap-1 type-label-s">Ping-tider
         <textarea className={`${field} h-16 py-1`} disabled={locked} value={times.pings} onChange={(e) => setTimes({ ...times, pings: e.target.value })} />
+      </label>
+      <label className="flex flex-col gap-1 type-label-s">Ping-tider for bonus-grannyer
+        <textarea className={`${field} h-16 py-1`} disabled={locked} value={times.bonus} placeholder="Tomt: samme som over"
+          onChange={(e) => setTimes({ ...times, bonus: e.target.value })} />
       </label>
       <details>
         <summary className="cursor-pointer type-label-s text-text-brand">Regler{locked ? " (kan endres underveis)" : ""}</summary>
@@ -162,7 +168,7 @@ function Grannies({ data, locked, call }: { data: SetupData; locked: boolean; ca
           </Button>
         </div>
       )}
-      <p className="type-body-s text-text-tertiary">En granny som ikke er «egen granny» for noe lag, er bonus-granny. Rømlingens navn er hemmelig. Det lagres bare i databasen.</p>
+      <p className="type-body-s text-text-tertiary">En granny som ikke er «egen granny» for noe lag, er bonus-granny. Hun har egne ping-tider og en gul ring på kartet.</p>
     </section>
   );
 }
@@ -182,8 +188,7 @@ function GrannyRow({ g, gameId, family, locked, call }: { g: SetupData["grannies
       setUploading(false);
     }
   }
-  const [rom, setRom] = useState(g.is_romling);
-  const dirty = name !== g.name || rom !== g.is_romling;
+  const dirty = name !== g.name;
   return (
     <div className="flex flex-wrap items-center gap-2 rounded-md border border-border-default p-2">
       <label className="relative size-10 shrink-0 cursor-pointer overflow-hidden rounded-full border-2 border-border-brand bg-bg-brand-subtle" title="Bytt profilbilde">
@@ -193,8 +198,7 @@ function GrannyRow({ g, gameId, family, locked, call }: { g: SetupData["grannies
         <input type="file" accept="image/*" className="hidden" disabled={uploading} onChange={(e) => setPhoto(e.target.files?.[0])} />
       </label>
       <input className={`${field} min-w-0 flex-1`} value={name} onChange={(e) => setName(e.target.value)} />
-      <label className="flex items-center gap-1 type-body-s"><input type="checkbox" checked={rom} onChange={(e) => setRom(e.target.checked)} /> Rømling</label>
-      {dirty && <Button size="M" onClick={() => call("admin_save_granny", { p_id: g.id, p_name: name, p_is_romling: rom }, "Lagret.")}>Lagre</Button>}
+      {dirty && <Button size="M" onClick={() => call("admin_save_granny", { p_id: g.id, p_name: name, p_is_romling: false }, "Lagret.")}>Lagre</Button>}
       {!locked && !dirty && (
         <button type="button" className="text-text-danger" aria-label={`Slett ${g.name}`}
           onClick={() => confirm(`Slette ${g.name}?`) && call("admin_delete", { p_kind: "granny", p_id: g.id }, "Slettet.")}>

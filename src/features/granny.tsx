@@ -33,9 +33,12 @@ const TAXI_TEXT = {
   picked_up: "Du sitter i taxien.",
 } as const;
 
-export function TaxiSheet({ status, coords, taxisOnline, onClose, onDone }: {
+export function TaxiSheet({ status, coords, gameS, caught, taxisOnline, onClose, onDone }: {
   status: GrannyStatus;
   coords: Coords | null;
+  gameS: number;
+  /** Fanget: turen teller ikke, men hun står sist i køen. */
+  caught: boolean;
   /** Taxier som har sendt posisjon de siste 5 minuttene (fra granny_map). */
   taxisOnline: number;
   onClose: () => void;
@@ -44,7 +47,7 @@ export function TaxiSheet({ status, coords, taxisOnline, onClose, onDone }: {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const req = status.taxi_request;
-  const used = status.taxi_rides >= status.taxi_max_rides;
+  const used = !caught && status.taxi_rides >= status.taxi_max_rides;
   // taxi_rides er brukte turer minus ekstra turer fra spilleder.
   const left = Math.max(0, status.taxi_max_rides - status.taxi_rides);
 
@@ -60,17 +63,28 @@ export function TaxiSheet({ status, coords, taxisOnline, onClose, onDone }: {
   return (
     <Sheet onClose={onClose}>
       <h2 className="type-display-m">Taxi</h2>
-      <p className="type-body-m text-text-secondary">
-        Du har {left === 1 ? "én taxitur" : `${left} taxiturer`} igjen. Taxiene ser du på kartet.
-        Når du blir hentet, får lagene se hentestedet, men ikke hvem du er.
-      </p>
+      {caught ? (
+        <p className="type-body-m text-text-secondary">
+          Du er fanget, men kan få skyss. Du står sist i køen, bak alle som fortsatt er med i jakten.
+        </p>
+      ) : (
+        <p className="type-body-m text-text-secondary">
+          Du har {left === 1 ? "én taxitur" : `${left} taxiturer`} igjen. Taxiene ser du på kartet.
+          Når du blir hentet, får lagene se hentestedet, men ikke hvem du er.
+        </p>
+      )}
       {req ? (
         <div className="flex flex-col gap-2 rounded-md bg-bg-warning-subtle p-3">
           <span className="type-label-l">
             {req.status === "accepted" ? `${req.taxi_name ?? "Taxien"} ${TAXI_TEXT.accepted}` : TAXI_TEXT[req.status]}
           </span>
           {req.status === "waiting" && req.queue_position != null && (
-            <span className="type-body-s">Du er nr. {req.queue_position} i køen.</span>
+            <span className="type-body-s">Du er nr. {req.queue_position} i køen{req.last_in_queue ? " (fanget: bak de andre)" : ""}.</span>
+          )}
+          {req.status === "picked_up" && req.ride_ends_s != null && (
+            <span className={`type-timer-l ${req.ride_ends_s - gameS <= 60 ? "text-text-danger" : ""}`}>
+              {formatCountdown(Math.max(0, req.ride_ends_s - gameS))} igjen i taxien
+            </span>
           )}
         </div>
       ) : (

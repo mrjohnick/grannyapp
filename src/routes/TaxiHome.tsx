@@ -95,7 +95,7 @@ export function TaxiHome() {
               <div className="flex items-center gap-3">
                 <Avatar name={active.granny_name} url={avatar} size={48} />
                 <div className="flex-1">
-                  <div className="type-heading-m">{active.granny_name}</div>
+                  <div className="type-heading-m">{active.granny_name}{active.caught ? " (fanget)" : ""}</div>
                   <div className="type-body-s text-text-secondary">
                     {active.status === "accepted"
                       ? dist != null ? `${distanceText(dist)} unna · hent henne`
@@ -123,7 +123,15 @@ export function TaxiHome() {
                   </Button>
                 </div>
               ) : (
-                <Button block icon="check" disabled={busy} onClick={() => call("taxi_dropoff")}>Levert</Button>
+                <>
+                  {active.ride_ends_s != null && (
+                    <div className={`flex items-baseline justify-between rounded-md px-3 py-2 ${active.ride_ends_s - gameS <= 60 ? "bg-bg-danger-subtle" : "bg-bg-warning-subtle"}`}>
+                      <span className="type-body-s">Tid igjen før hun må ut</span>
+                      <span className="type-timer-l">{formatCountdown(Math.max(0, active.ride_ends_s - gameS))}</span>
+                    </div>
+                  )}
+                  <Button block icon="check" disabled={busy} onClick={() => call("taxi_dropoff")}>Levert</Button>
+                </>
               )}
             </>
           ) : (
@@ -139,7 +147,9 @@ export function TaxiHome() {
                   {waiting.map((w, i) => (
                     <li key={w.id} className={`flex items-center gap-2 rounded-md px-3 py-2 ${i === 0 ? "bg-bg-warning-subtle" : ""}`}>
                       <span className="w-5 type-label-m text-text-tertiary">{i + 1}</span>
-                      <span className="flex-1 type-label-m">{w.granny_name}</span>
+                      <span className="flex-1 type-label-m">
+                        {w.granny_name}{w.caught && <span className="type-body-s text-text-tertiary"> · fanget</span>}
+                      </span>
                       <span className="type-timer-s text-text-tertiary">venter {formatCountdown(Math.max(0, gameS - w.requested_s))}</span>
                     </li>
                   ))}
