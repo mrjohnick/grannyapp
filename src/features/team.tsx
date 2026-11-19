@@ -103,7 +103,7 @@ export function ScoreSheet({ status, teamId, onClose }: { status: TeamStatus; te
 }
 
 // ---------------------------------------------------------------------------
-// Fotoalbumet: bildet vises når blindheten er over
+// Fotoalbumet: laget får se bildet de ble tatt med i (én gang per bilde)
 // ---------------------------------------------------------------------------
 const seenKey = (teamId: string) => `granny.album.${teamId}`;
 
@@ -136,7 +136,7 @@ export function AlbumRevealSheet({ photo, onClose }: {
     <Sheet onClose={onClose}>
       <h2 className="type-display-m">Her er bildet</h2>
       <p className="type-body-m text-text-secondary">
-        Dette bildet gjorde dere blinde ved {formatGameTime(photo.at_s)}. Hvem som tok det, får dere vite etter spillet.
+        Dere ble tatt med i Fotoalbumet ved {formatGameTime(photo.at_s)} og mistet 2p. Hvem som tok bildet, får dere vite etter spillet.
       </p>
       <figure className="overflow-hidden rounded-lg border-2 border-border-strong">
         <StoredPhoto path={photo.storage_path} className="aspect-[3/4] w-full object-cover" />

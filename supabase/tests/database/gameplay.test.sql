@@ -163,27 +163,27 @@ select pg_temp.as_postgres();
 select is(pg_temp.points('00000000-0000-0000-0000-0000000000b1'), -2, 'laget i Fotoalbumet får -2p');
 select is(pg_temp.gpoints('00000000-0000-0000-0000-0000000000a1'), 4, 'fotografen får 2p (pluss 2p fra Bingo)');
 select pg_temp.as_user('33333333-0000-0000-0000-000000000001');
-select is((public.team_map()->>'blind_until_s')::int, 3600, 'laget er blindt i 10 min');
-select ok(not public.can_view_photo('00000000-0000-0000-0000-000000000001/album-1.jpg'), 'laget ser ikke bildet mens det er blindt');
--- Gerd tar taxi mens Lag Blå er blinde.
+select is(public.team_map()->>'blind_until_s', null, 'laget blir ikke blindt (blindhet er fjernet)');
+select ok(public.can_view_photo('00000000-0000-0000-0000-000000000001/album-1.jpg'), 'laget ser bildet med en gang');
+-- Gerd tar taxi rett etter Fotoalbumet.
 select pg_temp.as_user('33333333-0000-0000-0000-000000000004'); select public.granny_request_taxi();
 select pg_temp.as_user('33333333-0000-0000-0000-000000000008'); select public.taxi_accept_next(); select public.taxi_pickup(58.3405, 8.5934, 5);
 select pg_temp.as_user('33333333-0000-0000-0000-000000000001');
-select is(jsonb_array_length(jsonb_path_query_array(public.my_events(), '$[*] ? (@.kind == "taxi" && @.at_s == 3000)')), 0, 'blinde lag får ikke taxivarsel');
+select is(jsonb_array_length(jsonb_path_query_array(public.my_events(), '$[*] ? (@.kind == "taxi" && @.at_s == 3000)')), 1, 'Lag Blå får taxivarsel (ingen blindhet)');
 select pg_temp.as_user('33333333-0000-0000-0000-000000000002');
 select is(jsonb_array_length(jsonb_path_query_array(public.my_events(), '$[*] ? (@.kind == "taxi" && @.at_s == 3000)')), 1, 'andre lag får det');
 
--- Et nytt bilde av samme lag kan ikke godkjennes før 15 min etter blindheten.
+-- Et nytt bilde av samme lag kan godkjennes med en gang (ingen sperretid).
 select pg_temp.as_user('33333333-0000-0000-0000-000000000004');
 select public.submit_photo('fotoalbum', '00000000-0000-0000-0000-000000000001/album-2.jpg', null, null, null, '00000000-0000-0000-0000-0000000000b1');
 select pg_temp.as_user('33333333-0000-0000-0000-000000000005');
-select throws_ok($$ select public.admin_review_photo((select id from public.photos where storage_path like '%album-2.jpg'), true) $$,
-  'P0001', 'Laget kan ikke blindes ennå', 'ingen ny blindhet før 15 min etter forrige');
+select lives_ok($$ select public.admin_review_photo((select id from public.photos where storage_path like '%album-2.jpg'), true) $$,
+  'samme lag kan tas med i Fotoalbumet igjen');
 
--- 1:21:40 – blindheten er over, Postkort 2 er åpent
+-- 1:21:40 – Postkort 2 er åpent
 select pg_temp.as_postgres(); select pg_temp.at(4900);
 select pg_temp.as_user('33333333-0000-0000-0000-000000000001');
-select ok(public.can_view_photo('00000000-0000-0000-0000-000000000001/album-1.jpg'), 'laget ser bildet når blindheten er over');
+select ok(public.can_view_photo('00000000-0000-0000-0000-000000000001/album-1.jpg'), 'laget ser fortsatt bildet');
 select lives_ok($$ select public.submit_photo('postkort', '00000000-0000-0000-0000-000000000001/kort-bla.jpg', 58.3395, 8.5990, 5) $$, 'Lag Blå sender postkort');
 select pg_temp.as_user('33333333-0000-0000-0000-000000000002');
 select public.submit_photo('postkort', '00000000-0000-0000-0000-000000000001/kort-rod.jpg', 58.3500, 8.6100, 5);

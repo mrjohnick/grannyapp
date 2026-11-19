@@ -218,7 +218,7 @@ export function AdminReveal({ live }: { live: AdminLive | null }) {
   return (
     <section className="flex flex-col gap-2 rounded-lg border border-border-default p-3">
       <h2 className="type-heading-m">Vis granny live</h2>
-      <p className="type-body-s text-text-secondary">Lagene ser posisjonen hele tiden, ikke bare ved ping. Blinde lag ser den ikke.</p>
+      <p className="type-body-s text-text-secondary">Lagene ser posisjonen hele tiden, ikke bare ved ping.</p>
       <form onSubmit={reveal} className="flex flex-col gap-2">
         <select className={field} value={granny} onChange={(e) => setGranny(e.target.value)}>
           <option value="">Velg granny</option>

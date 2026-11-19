@@ -205,7 +205,7 @@ export function PhotoSheet({ status, gameS, gameId, coords, inBingo, onClose, on
       <h2 className="type-display-m">Ta bilde</h2>
       <SelectRow
         title="Fotoalbumet"
-        subtitle={albumOpen ? "2p. Laget blir blindet i 10 min." : status.fotoalbum_pending ? "Venter på spilleder" : `Åpner igjen om ${formatCountdown(albumWait)}`}
+        subtitle={albumOpen ? "Du får 2p, laget mister 2p." : status.fotoalbum_pending ? "Venter på spilleder" : `Åpner igjen om ${formatCountdown(albumWait)}`}
         lead={<span className="grid size-10 place-items-center rounded-full bg-bg-brand-subtle"><Icon name="camera" /></span>}
         selected={mode === "fotoalbum"}
         disabled={!albumOpen}

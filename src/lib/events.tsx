@@ -28,7 +28,7 @@ export function useEventVersion() {
 
 const ICONS: Record<string, IconName> = {
   ping: "ping", taxi: "taxi", snitch: "megaphone", snitch_target: "megaphone", snitch_bonus: "megaphone",
-  blind: "eye-off", blind_over: "eye", bingo: "bingo", bingo_ok: "bingo",
+  blind: "eye-off", blind_over: "eye", album_photo: "camera", bingo: "bingo", bingo_ok: "bingo",
   nabovakt_seen: "eye", nabovakt_result: "eye", postkort_open: "camera", postkort_won: "camera", postkort_closed: "camera",
   romling_reveal: "moon", license: "lock", catch_registered: "target", catch_confirmed: "target", catch_overdue: "alert",
   photo_pending: "camera", photo_approved: "check", photo_rejected: "x", message: "bell", end: "trophy", start: "play",

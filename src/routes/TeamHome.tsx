@@ -1,4 +1,4 @@
-// L1 · Kart (letelag), L2 fangst, L3–L6 oppgaver, L7 · Blindet
+// L1 · Kart (letelag), L2 fangst, oppgaver. Blindhet er tatt ut av spillet; visningen under er sovende.
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "../lib/supabase";
