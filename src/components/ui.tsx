@@ -1,6 +1,7 @@
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 import { Icon, type IconName } from "./Icon";
 import { formatClock, formatCountdown } from "../lib/gameClock";
+import { NotificationBell } from "../lib/events";
 
 // ---------------------------------------------------------------------------
 // Button – Figma: Button (Type × State × Size)
@@ -107,6 +108,7 @@ export function TopBar({
         <div className="type-label-caps opacity-80">Spilletid</div>
         <div className="type-timer-l">{formatClock(gameS)}</div>
       </div>
+      <NotificationBell />
       <div className="text-right">
         <div className="type-label-caps opacity-80">{label}</div>
         <div className="type-timer-l">{value}</div>

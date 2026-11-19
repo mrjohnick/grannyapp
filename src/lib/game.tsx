@@ -23,7 +23,8 @@ export function GameProvider({ role, children }: { role?: Role; children: ReactN
   if (role && game.state.role !== role) return <Navigate to={homeFor(game.state.role)} replace />;
   return (
     <GameContext.Provider value={{ ...game, state: game.state }}>
-      <EventsProvider gameId={game.state.game_id} onEvent={() => game.refresh()}>{children}</EventsProvider>
+      {/* Rollen er med i nøkkelen, så en telefon som bytter rolle ikke deler «sett»-merket. */}
+      <EventsProvider storageKey={`${game.state.game_id}.${game.state.role}`} onEvent={() => game.refresh()}>{children}</EventsProvider>
     </GameContext.Provider>
   );
 }

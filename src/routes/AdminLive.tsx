@@ -3,6 +3,7 @@ import { useCallback, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { useGame } from "../lib/game";
+import { NotificationBell } from "../lib/events";
 import { useInterval } from "../lib/hooks";
 import { useZones } from "../lib/useZones";
 import { tagText, useFamilies } from "../lib/families";
@@ -93,9 +94,10 @@ export function AdminLive() {
   return (
     <div className="flex h-dvh flex-col bg-bg-app lg:flex-row">
       <aside className="flex flex-col gap-4 overflow-y-auto border-border-strong bg-bg-surface p-5 lg:w-[380px] lg:border-r-2">
-        <div className="flex items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <LogoLockup scale={0.6} />
-          <div className="flex gap-2">
+          <div className="flex items-center gap-2">
+            <NotificationBell />
             <Link to="/leder/oppsett" className="rounded-full border-2 border-border-strong bg-bg-surface px-3 py-1 type-label-s">Oppsett</Link>
             <Link to="/oppsummering" className="rounded-full border-2 border-border-strong bg-bg-surface px-3 py-1 type-label-s">Oppsummering</Link>
           </div>
