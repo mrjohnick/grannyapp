@@ -24,6 +24,7 @@ const RULES: Array<[string, string, "min" | "s" | "m"]> = [
   ["taxi_driver_timeout_s", "Taxi uten svar gis videre etter (min)", "min"],
   ["taxi_ride_max_s", "Maks tid i taxi (min, 0 = ingen grense)", "min"],
   ["catch_points_bonus", "Bonus-granny, poeng", "m"],
+  ["catch_immunity_s", "Fredet etter å bli tatt av et annet lag (min)", "min"],
   ["ability_live_s", "Live-evne varer (sek)", "s"],
   ["out_of_area_grace_s", "Utenfor området: live etter (sek)", "s"],
   ["retention_days", "Slett data etter (dager)", "m"],

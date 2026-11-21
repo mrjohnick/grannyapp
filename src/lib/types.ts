@@ -154,6 +154,24 @@ export type TeamCatch = {
   registered_s: number;
   age_s: number;
   admin_deciding: boolean;
+  /** Godkjent, men hun gikk fri igjen (ikke lagets egen granny). */
+  released: boolean;
+  /** Fangsten tar henne ut av jakten (lagets egen granny eller Rømlingen). */
+  takes_out: boolean;
+  protected_until_s: number | null;
+};
+
+/** En granny laget kan registrere fangst av (team_catch_targets). */
+export type CatchTarget = {
+  id: string;
+  name: string;
+  is_romling: boolean;
+  takes_out: boolean;
+  points: number;
+  /** Fredet til dette spillsekundet etter å ha blitt tatt. */
+  protected_until_s: number | null;
+  /** Laget har allerede fått poeng for henne. */
+  taken_by_us: boolean;
 };
 
 export type PendingClaim = {
@@ -178,6 +196,7 @@ export type AdminCatch = {
   selfie_path: string | null;
   age_s: number;
   overdue: boolean;
+  takes_out: boolean;
   competing: number;
 };
 
@@ -211,6 +230,8 @@ export type GrannyStatus = {
   taxis: number;
   /** Utenfor spillområdet: spillsekundet hun blir (eller ble) live for alle lag. Null når hun er inne. */
   out_of_area: null | { live_at_s: number };
+  /** Fredet til dette spillsekundet etter å ha blitt tatt og sluppet fri. */
+  protected_until_s: number | null;
   snitch_used: boolean;
   fotoalbum_next_s: number | null;
   fotoalbum_pending: boolean;

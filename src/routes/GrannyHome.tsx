@@ -106,6 +106,17 @@ export function GrannyHome() {
               </div>
             );
           })()}
+          {status?.protected_until_s != null && status.protected_until_s > gameS && !granny.caught && running && (
+            // Tatt av et annet lag og sluppet fri: ingen kan ta henne på en stund.
+            <div className="flex w-full max-w-sm items-center gap-3 rounded-lg border-2 border-border-strong bg-bg-success-subtle p-3 shadow-hard">
+              <Icon name="check" size={28} />
+              <span className="flex-1">
+                <span className="block type-label-m">Du er fri igjen og fredet</span>
+                <span className="block type-body-s">Ingen lag kan ta deg før tiden er ute. Kom deg unna.</span>
+              </span>
+              <span className="type-timer-l">{formatCountdown(status.protected_until_s - gameS)}</span>
+            </div>
+          )}
           {tgAge !== undefined && !granny.caught && state.status !== "ended" && (tgOk ? (
             <Link to="/granny/telegram"
               className="flex items-center gap-1 rounded-full border border-border-strong bg-bg-success-subtle px-3 py-1 type-label-s">

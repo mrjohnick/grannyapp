@@ -101,7 +101,7 @@ select results_eq(
             ('int_array_is_sorted'), ('is_admin_of'), ('join_game'), ('last_ping_s'), ('leave_game'), ('me'), ('my_event_history'), ('my_events'),
             ('my_game_id'), ('my_granny_id'), ('my_join_code'), ('my_role'), ('my_team_id'), ('my_telegram'), ('my_telegram_alerts'), ('next_ping_s'),
             ('register_catch'), ('report_position'), ('save_push_subscription'), ('submit_photo'), ('submit_quest'),
-            ('taxi_accept_next'), ('taxi_dropoff'), ('taxi_pickup'), ('taxi_queue'), ('taxi_release'), ('team_catches'),
+            ('taxi_accept_next'), ('taxi_dropoff'), ('taxi_pickup'), ('taxi_queue'), ('taxi_release'), ('team_catch_targets'), ('team_catches'),
             ('team_has_license'), ('team_map'), ('team_nabovakt'), ('team_quests'), ('team_romling_guess'),
             ('team_status'), ('team_use_ability'), ('use_team_ability'), ('zone_visible')) x(v) $$,
   'bare tillatte funksjoner kan kalles av klienter');

@@ -5,7 +5,8 @@ import { supabase } from "../lib/supabase";
 import { useFamilies, type GrannyTag } from "../lib/families";
 import { useInterval } from "../lib/hooks";
 import { formatGameTime } from "../lib/gameClock";
-import type { AdminCatch, GameState, GrannyRow, TeamCatch } from "../lib/types";
+import { useGame } from "../lib/game";
+import type { AdminCatch, CatchTarget, GameState, TeamCatch } from "../lib/types";
 import { Badge, Button, Initial, SelectRow, Sheet, TeamDot } from "../components/ui";
 import { Icon } from "../components/Icon";
 import { Avatar } from "../components/Avatar";
@@ -18,6 +19,8 @@ const ERRORS: Record<string, string> = {
   "Krever lisens": "Rømlingen kan bare fanges med lisens fra Nattevakten.",
   "Kravet er ikke åpent lenger": "Det kravet er ikke åpent lenger. Spilleder har kanskje avgjort det.",
   "Ugyldig bilde": "Selfien ble ikke godtatt. Ta en ny.",
+  "Hun er fredet": "Hun ble nettopp tatt og er fredet en stund.",
+  "Dere har allerede tatt henne": "Dere har allerede fått poeng for henne.",
 };
 const friendly = (msg: string) => ERRORS[msg] ?? "Noe gikk galt. Prøv igjen.";
 
@@ -30,28 +33,25 @@ export function TeamCatchSheet({ state, onClose, onRegistered }: {
   onRegistered: () => void;
 }) {
   const team = state.team!;
-  const [grannies, setGrannies] = useState<GrannyRow[] | null>(null);
+  const { gameS } = useGame();
+  const [grannies, setGrannies] = useState<CatchTarget[] | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { tagOf, avatarOf } = useFamilies();
 
   useEffect(() => {
-    supabase.from("grannies").select("id, name, is_romling, caught_at_s").then(({ data }) => {
-      const free = ((data ?? []) as GrannyRow[]).filter((g) => g.caught_at_s == null);
-      // Egen granny først, så alfabetisk, Rømlingen sist.
-      free.sort((a, b) =>
-        Number(b.id === team.assigned_granny_id) - Number(a.id === team.assigned_granny_id) ||
-        Number(a.is_romling) - Number(b.is_romling) ||
-        a.name.localeCompare(b.name, "nb"));
-      setGrannies(free);
-      if (free[0]?.id === team.assigned_granny_id) setSelected(free[0].id);
+    supabase.rpc("team_catch_targets").then(({ data }) => {
+      const list = (data ?? []) as CatchTarget[];
+      setGrannies(list);
+      const own = list.find((g) => g.id === team.assigned_granny_id && !g.protected_until_s);
+      if (own) setSelected(own.id);
     });
   }, [team.assigned_granny_id]);
 
-  const points = (g: GrannyRow) =>
-    g.is_romling ? 20 : g.id === team.assigned_granny_id ? 15 : tagOf(g.id)?.kind === "bonus" ? 20 : 10;
-  const chosen = grannies?.find((g) => g.id === selected);
+  // Fredet eller allerede tatt av oss: kan ikke velges.
+  const blocked = (g: CatchTarget) => g.taken_by_us || (g.protected_until_s != null && g.protected_until_s > gameS);
+  const chosen = grannies?.find((g) => g.id === selected && !blocked(g));
 
   async function submit() {
     if (!selected) return;
@@ -68,21 +68,31 @@ export function TeamCatchSheet({ state, onClose, onRegistered }: {
       <h2 className="type-display-m">Hvem har dere fanget?</h2>
       <p className="type-body-m text-text-secondary">
         Ta et bilde med grannyen og send det i lagets Telegram-gruppe. Registrer så fangsten her.
-        Den teller når spilleder har godkjent den. Tidspunktet nå avgjør rekkefølgen.
+        Den teller når spilleder har godkjent den.
+      </p>
+      <p className="rounded-md bg-bg-info-subtle p-3 type-body-s">
+        Bare deres egen granny blir tatt ut av jakten. Fanger dere en annen, får dere poeng én gang, og hun går fri igjen.
       </p>
       {grannies === null && <p className="type-body-m text-text-tertiary">Henter grannies …</p>}
       {grannies?.length === 0 && <p className="type-body-m text-text-secondary">Alle er fanget.</p>}
-      {grannies?.map((g) => (
-        <SelectRow
-          key={g.id}
-          title={g.name}
-          subtitle={`${g.id === team.assigned_granny_id ? "Deres granny" : g.is_romling ? "Rømlingen" : familyText(tagOf(g.id))} · ${points(g)}p`}
-          lead={avatarOf(g.id) ? <Avatar name={g.name} url={avatarOf(g.id)} /> : <Initial name={g.name} />}
-          selected={g.id === selected}
-          onClick={() => setSelected(g.id)}
-          trailing={<Badge tone="success">Fri</Badge>}
-        />
-      ))}
+      {grannies?.map((g) => {
+        const off = blocked(g);
+        const who = g.id === team.assigned_granny_id ? "Deres granny" : g.is_romling ? "Rømlingen" : familyText(tagOf(g.id));
+        const what = g.taken_by_us ? "dere har tatt henne"
+          : g.protected_until_s != null && g.protected_until_s > gameS ? `fredet til ${formatGameTime(g.protected_until_s)}`
+          : `${g.points}p${g.takes_out ? "" : " · går fri igjen"}`;
+        return (
+          <SelectRow
+            key={g.id}
+            title={g.name}
+            subtitle={`${who} · ${what}`}
+            lead={avatarOf(g.id) ? <Avatar name={g.name} url={avatarOf(g.id)} /> : <Initial name={g.name} />}
+            selected={g.id === selected && !off}
+            onClick={() => !off && setSelected(g.id)}
+            trailing={off ? <Badge tone="neutral">{g.taken_by_us ? "Tatt" : "Fredet"}</Badge> : <Badge tone="success">Fri</Badge>}
+          />
+        );
+      })}
       {error && <p className="rounded-md bg-bg-danger-subtle p-3 type-body-s text-text-danger">{error}</p>}
       <Button icon="target" block disabled={!chosen || busy} onClick={submit}>
         {chosen ? `Registrer fangst av ${chosen.name}` : "Velg hvem dere fanget"}
@@ -107,7 +117,12 @@ export function TeamCatchStatus({ refreshKey }: { refreshKey: number }) {
   let tone = "bg-bg-surface", icon: "clock" | "check" | "x" | "alert" = "clock", title = "", text = "";
   if (c.status === "pending") {
     title = `${c.granny_name}: venter på spilleder`;
-    text = "Husk å sende bildet i lagets Telegram-gruppe.";
+    text = c.takes_out ? "Husk å sende bildet i lagets Telegram-gruppe."
+      : "Send bildet i Telegram-gruppa. Hun går fri igjen når fangsten er godkjent.";
+  } else if (c.status === "confirmed" && c.released) {
+    tone = "bg-bg-success-subtle"; icon = "check";
+    title = `Godkjent! Dere fikk poeng for ${c.granny_name}`;
+    text = c.protected_until_s != null ? `Hun går fri igjen og er fredet til ${formatGameTime(c.protected_until_s)}.` : "Hun går fri igjen.";
   } else if (c.status === "confirmed") {
     tone = "bg-bg-success-subtle"; icon = "check";
     title = `${c.granny_name} er fanget!`;
@@ -198,13 +213,16 @@ export function AdminCatchQueue() {
           <p className="flex items-center gap-2 type-label-m">
             <TeamDot color={c.team_color} /> {c.team_name} sier de har fanget {c.granny_name}{c.is_romling ? " (Rømlingen)" : ""}.
           </p>
+          {!c.takes_out && (
+            <p className="type-body-s text-text-secondary">Ikke deres granny: godkjent gir laget poeng, og hun går fri igjen.</p>
+          )}
           {c.selfie_path
             ? <StoredPhoto path={c.selfie_path} className="max-h-64 w-full rounded-md object-contain" />
             : <p className="type-body-s text-text-tertiary">Se bildet i lagets Telegram-gruppe.</p>}
           {c.competing > 1 && <p className="type-body-s text-text-secondary">{c.competing} lag krever henne. Den som teller, gjør de andre ugyldige.</p>}
           <div className="flex gap-2">
             <Button size="M" icon="check" className="flex-1" disabled={busy === c.id} onClick={() => resolve(c.id, true)}>Fangst teller</Button>
-            <Button size="M" variant="secondary" icon="x" disabled={busy === c.id} onClick={() => resolve(c.id, false)}>Går fri</Button>
+            <Button size="M" variant="secondary" icon="x" disabled={busy === c.id} onClick={() => resolve(c.id, false)}>{c.takes_out ? "Går fri" : "Teller ikke"}</Button>
           </div>
         </div>
       ))}
